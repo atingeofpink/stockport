@@ -135,6 +135,7 @@
 
   @media(max-width:860px){.summary-grid{grid-template-columns:1fr 1fr};header{flex-direction:column;align-items:flex-start;gap:14px}}
   @media(max-width:580px){.page{padding:24px 16px 60px};.summary-grid{grid-template-columns:1fr}}
+  .en-edit{background:none;border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:10px;padding:3px 8px;border-radius:5px;font-family:'DM Mono',monospace;letter-spacing:.05em;transition:all .15s}.en-edit:hover{color:var(--en);border-color:var(--en)}
 </style>
 </head>
 <body>
@@ -148,6 +149,7 @@
   <div class="header-right">
     <div class="total-num" id="hdr-total">—</div>
     <div class="total-label">Total · SGD equivalent</div>
+    <div id="sync-status" style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.08em;margin-top:6px">⟳ Loading…</div>
   </div>
 </header>
 
@@ -414,6 +416,30 @@
   </div>
 </div>
 
+<!-- ENDOWUS EDIT MODAL -->
+<div class="modal-bg" id="modal-en">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('en')">✕</button>
+    <h2 id="modal-en-title">Update Fund Value</h2>
+    <div class="modal-sub" id="modal-en-sub">Enter the current portfolio value from Endowus</div>
+    <input type="hidden" id="en-fund-idx">
+    <div class="form-row">
+      <div class="form-group">
+        <label>Current Value (SGD)</label>
+        <input type="number" id="en-mv" placeholder="e.g. 21500.00" step="0.01">
+      </div>
+      <div class="form-group">
+        <label>Original Cost (SGD)</label>
+        <input type="number" id="en-cost" placeholder="e.g. 13258.60" step="0.01">
+      </div>
+    </div>
+    <div id="en-preview" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-top:4px;display:none"></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="closeModal('en')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitEnEdit()">Update</button>
+    </div>
+  </div>
+</div>
 
 <script>
 // ── SUPABASE CONFIG ───────────────────────────────────────
@@ -557,11 +583,31 @@ const ENDOWUS = [
 let FX = 1.265; // updated from live FX fetch
 
 // ── STATE ─────────────────────────────────────────────────
-let transactions = [];
-let dividends    = [];
-let usStocks     = [];
-let sgStocks     = [];
-let isLoading    = true;
+let transactions  = [];
+let dividends     = [];
+let usStocks      = [];
+let sgStocks      = [];
+let isLoading     = true;
+let endowusValues = {}; // { 'CASH$$$TREE': {mv, cost}, ... } — overrides from Supabase
+
+// ── ENDOWUS VALUE HELPERS ────────────────────────────────
+async function loadEndowusValues() {
+  try {
+    const rows = await supa.select('endowus_values');
+    endowusValues = {};
+    rows.forEach(r => { endowusValues[r.fund_name] = { mv: r.mv, cost: r.cost, id: r.id }; });
+  } catch(e) {
+    // table may not exist yet — silently ignore
+    endowusValues = {};
+  }
+}
+
+function getEndowusMV(name) {
+  return endowusValues[name] ? endowusValues[name].mv : null;
+}
+function getEndowusCost(name) {
+  return endowusValues[name] ? endowusValues[name].cost : null;
+}
 
 // ── HELPERS ───────────────────────────────────────────────
 const f   = (n, dp=2) => Math.abs(n).toLocaleString('en-US', {minimumFractionDigits:dp, maximumFractionDigits:dp});
@@ -629,9 +675,9 @@ function render() {
   const sgPLsgd = sgStocks.reduce((s,h) => s+h.pl, 0);
   const sgCost  = sgStocks.reduce((s,h) => s+h.cost, 0);
   const sgDivEst= sgStocks.reduce((s,h) => s+(h.qty*(h.dpu||0)), 0);
-  const enMVsgd = ENDOWUS.reduce((s,h) => s+h.mv, 0);
-  const enPLsgd = ENDOWUS.reduce((s,h) => s+h.pl, 0);
-  const enCost  = ENDOWUS.reduce((s,h) => s+(h.mv-h.pl), 0);
+  const enMVsgd = ENDOWUS.reduce((s,h) => { const ov=endowusValues[h.name]; return s+(ov?ov.mv:h.mv); }, 0);
+  const enCost  = ENDOWUS.reduce((s,h) => { const ov=endowusValues[h.name]; return s+(ov?ov.cost:(h.mv-h.pl)); }, 0);
+  const enPLsgd = enMVsgd - enCost;
   const total   = usMVsgd + sgMVsgd + enMVsgd;
   const divRecv = dividends.reduce((s,d) => s+d.net, 0);
 
@@ -732,15 +778,22 @@ function render() {
   const enMaxWt  = (enSorted[0].mv/total)*100;
   document.getElementById('en-meta').textContent = `${enSorted.length} funds · SGD ${f(enMVsgd,0)}`;
   document.getElementById('en-body').innerHTML = enSorted.map((h,i) => {
-    const wt=(h.mv/total)*100, cost=h.mv-h.pl, pct=pp(h.pl,cost);
+    const override = endowusValues[h.name];
+    const mv   = override ? override.mv   : h.mv;
+    const cost = override ? override.cost : (h.mv - h.pl);
+    const pl   = mv - cost;
+    const wt   = (mv/total)*100;
+    const pct  = pp(pl, cost);
+    const idx  = ENDOWUS.findIndex(e => e.name === h.name);
     return `<tr>
       <td class="rank">${i+1}</td>
       <td><div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:500;color:var(--en)">${h.name}</div><div class="sym-name">${h.type}</div></td>
       <td style="text-align:left;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace">${h.type.split(' · ')[0]}</td>
-      <td class="num">${f(h.mv)}</td>
-      <td class="col-divider">${plPill(h.pl, 'SGD '+f(h.pl))}</td>
+      <td class="num">SGD ${f(mv)}</td>
+      <td class="col-divider">${plPill(pl, 'SGD '+f(pl))}</td>
       <td>${pctBadge(pct)}</td>
       <td class="col-divider">${wtBar(wt, enMaxWt, 'var(--en)')}</td>
+      <td><button class="en-edit" onclick="openEnEdit(${idx})">✎ Edit</button></td>
     </tr>`;
   }).join('');
   const enTotPct=pp(enPLsgd,enCost);
@@ -853,6 +906,69 @@ function handleSymbolChange() {
 }
 
 function closeModal(type) { document.getElementById('modal-'+type).classList.remove('open'); }
+
+// ── ENDOWUS EDIT ──────────────────────────────────────────
+function openEnEdit(idx) {
+  const fund = ENDOWUS[idx];
+  const override = endowusValues[fund.name];
+  document.getElementById('modal-en-title').textContent = fund.name;
+  document.getElementById('modal-en-sub').textContent   = fund.type;
+  document.getElementById('en-fund-idx').value = idx;
+  document.getElementById('en-mv').value   = override ? override.mv   : (fund.mv).toFixed(2);
+  document.getElementById('en-cost').value = override ? override.cost : (fund.mv - fund.pl).toFixed(2);
+  updateEnPreview();
+  document.getElementById('modal-en').classList.add('open');
+}
+
+function updateEnPreview() {
+  const mv   = parseFloat(document.getElementById('en-mv').value)   || 0;
+  const cost = parseFloat(document.getElementById('en-cost').value) || 0;
+  const prev = document.getElementById('en-preview');
+  if (!mv || !cost) { prev.style.display='none'; return; }
+  const pl  = mv - cost;
+  const pct = cost ? ((pl/cost)*100).toFixed(1) : 0;
+  prev.style.display = 'block';
+  prev.innerHTML = `Value: <span style="color:var(--en)">SGD ${f(mv)}</span>
+    &nbsp;·&nbsp; P&L: <span style="color:${pl>=0?'var(--green)':'var(--red)'}">
+    ${pl>=0?'+':'−'}SGD ${f(Math.abs(pl))}</span>
+    &nbsp;·&nbsp; <span style="color:${pl>=0?'var(--green)':'var(--red)'}">${pl>=0?'+':''}${pct}%</span>`;
+}
+
+async function submitEnEdit() {
+  const idx  = parseInt(document.getElementById('en-fund-idx').value);
+  const mv   = parseFloat(document.getElementById('en-mv').value);
+  const cost = parseFloat(document.getElementById('en-cost').value);
+  if (!mv || !cost) { alert('Please enter both Current Value and Original Cost.'); return; }
+  const fund = ENDOWUS[idx];
+  const btn  = document.querySelector('#modal-en .btn-primary');
+  btn.textContent = 'Saving…'; btn.disabled = true;
+  try {
+    const existing = endowusValues[fund.name];
+    if (existing && existing.id) {
+      // Update existing row
+      const r = await fetch(`${SUPA_URL}/rest/v1/endowus_values?id=eq.${existing.id}`, {
+        method: 'PATCH',
+        headers: { 'apikey': SUPA_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+        body: JSON.stringify({ mv, cost })
+      });
+      if (!r.ok) throw new Error(await r.text());
+      const [updated] = await r.json();
+      endowusValues[fund.name] = { mv: updated.mv, cost: updated.cost, id: updated.id };
+    } else {
+      // Insert new row
+      const [saved] = await supa.insert('endowus_values', { fund_name: fund.name, mv, cost });
+      endowusValues[fund.name] = { mv: saved.mv, cost: saved.cost, id: saved.id };
+    }
+    setStatus('✓ Endowus value updated');
+    closeModal('en');
+    render();
+  } catch(e) {
+    setStatus('⚠ Save failed — run the SQL to create endowus_values table', true);
+    alert('Could not save — run the SQL to create the endowus_values table.\n\n' + e.message);
+  } finally {
+    btn.textContent = 'Update'; btn.disabled = false;
+  }
+}
 
 function updateBuyPreview() {
   const qty   = parseFloat(document.getElementById('buy-qty').value)   || 0;
@@ -986,6 +1102,8 @@ function switchTab(name, btn) {
 }
 
 // ── INPUT LISTENERS ───────────────────────────────────────
+document.getElementById('en-mv').addEventListener('input',   updateEnPreview);
+document.getElementById('en-cost').addEventListener('input', updateEnPreview);
 document.getElementById('buy-qty').addEventListener('input',   updateBuyPreview);
 document.getElementById('buy-price').addEventListener('input', updateBuyPreview);
 document.getElementById('buy-fee').addEventListener('input',   updateBuyPreview);
@@ -999,25 +1117,33 @@ document.querySelectorAll('.modal-bg').forEach(bg => {
 
 // ── INIT — load from Supabase ─────────────────────────────
 async function init() {
+  // Step 1: Render immediately with snapshot data so something always shows
+  render();
   setStatus('⟳ Loading…');
+
+  // Step 2: Load Supabase data
   try {
-    // Load Supabase data and live prices in parallel
     const [txData, divData] = await Promise.all([
       supa.select('transactions'),
       supa.select('dividends'),
     ]);
     transactions = txData;
     dividends    = divData;
-
-    // Fetch prices (non-blocking — renders with snapshot if it fails)
-    await fetchLivePrices();
-    FX = fxRate; // sync FX to live rate
-    render();
+    await loadEndowusValues();
   } catch(e) {
-    setStatus('⚠ Could not connect — check Supabase tables are created', true);
-    transactions = []; dividends = [];
-    render();
+    setStatus('⚠ Supabase unavailable — showing snapshot data', true);
   }
+
+  // Step 3: Fetch live prices (always attempt, non-blocking)
+  try {
+    await fetchLivePrices();
+    FX = fxRate;
+  } catch(e) {
+    setStatus('⚠ Price fetch failed — using snapshot values', true);
+  }
+
+  // Step 4: Final render with all data
+  render();
 }
 
 init();
