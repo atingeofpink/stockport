@@ -212,7 +212,7 @@
         <table>
           <thead><tr>
             <th>#</th><th>Symbol</th><th>Qty</th>
-            <th>Avg Cost (USD)</th><th>Mkt Value (USD)</th><th>Mkt Value (SGD)</th>
+            <th>Avg Cost (USD)</th><th>Current Price</th><th>Mkt Value (USD)</th><th>Mkt Value (SGD)</th>
             <th class="col-divider">Unreal. P&amp;L (USD)</th><th>Unreal. P&amp;L (SGD)</th>
             <th>P&amp;L %</th><th class="col-divider">Portfolio Wt.</th>
           </tr></thead>
@@ -242,7 +242,7 @@
         <table>
           <thead><tr>
             <th>#</th><th>Symbol</th><th>Qty</th>
-            <th>Avg Cost (SGD)</th><th>Mkt Value (SGD)</th>
+            <th>Avg Cost (SGD)</th><th>Current Price</th><th>Mkt Value (SGD)</th>
             <th class="col-divider">Unreal. P&amp;L (SGD)</th><th>P&amp;L %</th>
             <th class="col-divider">Est. Annual Div.</th><th>Div Yield</th>
             <th class="col-divider">Portfolio Wt.</th>
@@ -673,6 +673,7 @@ function render() {
       <td><div class="sym-badge" style="color:var(--us)">${h.symbol}</div><div class="sym-name">${h.name}</div></td>
       <td class="num">${h.qty.toLocaleString()}</td>
       <td class="num">${f(avg)}</td>
+      <td class="num" style="color:var(--text)">${f(h.mv/h.qty)}</td>
       <td class="num">${f(h.mv)}</td>
       <td class="num" style="color:rgba(126,179,255,.75)">SGD ${f(mvS,0)}</td>
       <td class="col-divider">${plPill(h.pl, f(h.pl))}</td>
@@ -685,7 +686,7 @@ function render() {
   document.getElementById('us-total').innerHTML = `
     <td></td><td style="font-size:10px;letter-spacing:.1em;color:var(--muted);font-family:'DM Mono',monospace">TOTAL</td>
     <td></td><td></td>
-    <td class="num">USD ${f(usMVusd,0)}</td>
+    <td></td><td class="num">USD ${f(usMVusd,0)}</td>
     <td class="num" style="color:var(--us)">SGD ${f(usMVsgd,0)}</td>
     <td class="col-divider">${plPill(usPLusd, f(usPLusd,0))}</td>
     <td>${plPill(usPLs, 'SGD '+f(usPLs,0))}</td>
@@ -706,6 +707,7 @@ function render() {
       <td><div class="sym-badge" style="color:var(--sg)">${h.symbol}</div><div class="sym-name">${h.name}</div></td>
       <td class="num">${h.qty.toLocaleString()}</td>
       <td class="num">${f(avg,3)}</td>
+      <td class="num" style="color:var(--text)">${f(h.mv/h.qty,3)}</td>
       <td class="num">${f(h.mv,0)}</td>
       <td class="col-divider">${plPill(h.pl, 'SGD '+f(h.pl,0))}</td>
       <td>${pctBadge(pct)}</td>
@@ -718,7 +720,7 @@ function render() {
   document.getElementById('sg-total').innerHTML = `
     <td></td><td style="font-size:10px;letter-spacing:.1em;color:var(--muted);font-family:'DM Mono',monospace">TOTAL</td>
     <td></td><td></td>
-    <td class="num" style="color:var(--sg)">SGD ${f(sgMVsgd,0)}</td>
+    <td></td><td class="num" style="color:var(--sg)">SGD ${f(sgMVsgd,0)}</td>
     <td class="col-divider">${plPill(sgPLsgd, 'SGD '+f(sgPLsgd,0))}</td>
     <td>${pctBadge(sgTotPct)}</td>
     <td class="col-divider num" style="color:var(--accent)">SGD ${f(sgDivEst,0)}</td>
