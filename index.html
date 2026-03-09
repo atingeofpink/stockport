@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -142,7 +143,7 @@
 <header>
   <div>
     <h1>My Portfolio</h1>
-    <div class="header-sub">Cheryl Ng &nbsp;·&nbsp; Syfe · Tiger · moomoo · Endowus</div>
+    <div class="header-sub">Cheryl Ng</div>
   </div>
   <div class="header-right">
     <div class="total-num" id="hdr-total">—</div>
@@ -168,9 +169,9 @@
     <div class="card-sub" id="s-sg-pct">—</div>
   </div>
   <div class="card">
-    <div class="card-label">Est. Annual Dividends</div>
-    <div class="card-val" style="color:var(--accent)" id="s-div-total">—</div>
-    <div class="card-sub" id="s-div-sub">SG stocks</div>
+    <div class="card-label">Endowus Cash</div>
+    <div class="card-val" style="color:var(--en)" id="s-en-val">—</div>
+    <div class="card-sub" id="s-en-pct">—</div>
   </div>
   <div class="card">
     <div class="card-label">Dividends Received</div>
@@ -219,7 +220,7 @@
           <tfoot><tr id="us-total"></tr></tfoot>
         </table>
       </div>
-      <div class="footnote">Duplicate tickers consolidated across brokerages. USD → SGD at 1.265 (Tiger Brokers rate, 28 Feb 2026).</div>
+      <div class="footnote">Prices fetched from Twelve Data on load (15-min delay for US, EOD for SGX). FX rate live from Twelve Data.</div>
     </div>
   </div>
 
@@ -449,6 +450,72 @@ const supa = {
   }
 };
 
+// ── TWELVE DATA CONFIG ───────────────────────────────────
+const TD_KEY  = '117282f5fbd5498e9817b0e22057ab5f';
+const TD_BASE = 'https://api.twelvedata.com';
+
+// Map our symbols to Twelve Data format
+// SGX stocks need .SI suffix; US stocks are plain
+const TD_SYMBOLS_US = ['MSFT','META','NET','NFLX','TSLA','CRWD','AXON','GLD','MA','NVDA','AMD','MU','IBIT','COPX','OKLO','PATH','NBIS'];
+const TD_SYMBOLS_SG = ['D05','O39','A17U','J69U','BUOU','M44U','C38U'];
+
+// Cache prices so we don't re-fetch on every render
+let livePrices = {}; // { 'MSFT': 392.50, 'D05.SI': 38.20, ... }
+let fxRate     = 1.265; // updated from Twelve Data if available
+let pricesLoadedAt = null;
+
+async function fetchLivePrices() {
+  setStatus('⟳ Fetching live prices…');
+  try {
+    // Batch all symbols in one call — Twelve Data supports comma-separated
+    const usList = TD_SYMBOLS_US.join(',');
+    const sgList = TD_SYMBOLS_SG.map(s => s + '.SI').join(',');
+    const allSymbols = usList + ',' + sgList;
+
+    const [priceRes, fxRes] = await Promise.all([
+      fetch(`${TD_BASE}/price?symbol=${allSymbols}&apikey=${TD_KEY}`),
+      fetch(`${TD_BASE}/exchange_rate?symbol=USD/SGD&apikey=${TD_KEY}`)
+    ]);
+
+    const priceData = await priceRes.json();
+    const fxData    = await fxRes.json();
+
+    // Parse FX rate
+    if (fxData.rate) fxRate = parseFloat(fxData.rate);
+
+    // Parse prices — Twelve Data returns { MSFT: { price: "392.50" }, ... }
+    // or just { price: "392.50" } if only one symbol
+    const parsed = Object.keys(priceData).length === 1 && priceData.price
+      ? { [allSymbols]: priceData }
+      : priceData;
+
+    Object.entries(parsed).forEach(([sym, data]) => {
+      if (data && data.price && !data.code) {
+        livePrices[sym] = parseFloat(data.price);
+      }
+    });
+
+    pricesLoadedAt = new Date();
+    const timeStr = pricesLoadedAt.toLocaleTimeString('en-SG', {hour:'2-digit', minute:'2-digit'});
+    setStatus(`✓ Prices updated ${timeStr} · FX ${fxRate.toFixed(4)}`);
+    return true;
+  } catch(e) {
+    setStatus('⚠ Price fetch failed — using last known values', true);
+    return false;
+  }
+}
+
+function applyLivePrices(arr, market) {
+  arr.forEach(h => {
+    const tdSym = market === 'sg' ? h.symbol + '.SI' : h.symbol;
+    const livePrice = livePrices[tdSym];
+    if (livePrice && livePrice > 0) {
+      h.mv = livePrice * h.qty;
+      h.pl = h.mv - h.cost;
+    }
+  });
+}
+
 // ── BASE DATA (28 Feb 2026 snapshot) ─────────────────────
 const BASE_US = [
   {symbol:'MSFT',name:'Microsoft',           qty:20, cost:8646.55, mv:7854.80,  pl:-791.75},
@@ -487,7 +554,7 @@ const ENDOWUS = [
   {name:'中国梦好日子',    type:'Fund Smart',                 mv:2036.19,  pl:36.19  },
 ];
 
-const FX = 1.265;
+let FX = 1.265; // updated from live FX fetch
 
 // ── STATE ─────────────────────────────────────────────────
 let transactions = [];
@@ -522,18 +589,27 @@ function applyTransactions() {
   usStocks = BASE_US.map(h => ({...h}));
   sgStocks = BASE_SG.map(h => ({...h}));
 
+  // Apply live prices to base holdings first
+  applyLivePrices(usStocks, 'us');
+  applyLivePrices(sgStocks, 'sg');
+
   transactions.forEach(tx => {
     const arr      = tx.market === 'us' ? usStocks : sgStocks;
     const existing = arr.find(h => h.symbol === tx.symbol);
     const txCost   = tx.qty * tx.price + (tx.fee || 0);
 
     if (existing) {
-      existing.mv   = existing.mv + (tx.qty * tx.price);
+      // After live prices applied, recalc mv for full qty
+      const livePerUnit = existing.mv / (existing.qty || 1);
       existing.cost += txCost;
       existing.qty  += tx.qty;
-      existing.pl   = existing.mv - existing.cost;
+      existing.mv    = livePerUnit * existing.qty;
+      existing.pl    = existing.mv - existing.cost;
     } else {
-      const newMV = tx.qty * tx.price;
+      // New position — use live price if available, else buy price
+      const tdSym = tx.market === 'sg' ? tx.symbol + '.SI' : tx.symbol;
+      const liveP = livePrices[tdSym] || tx.price;
+      const newMV = liveP * tx.qty;
       const entry = { symbol:tx.symbol, name:tx.name||tx.symbol, qty:tx.qty, cost:txCost, mv:newMV, pl:newMV-txCost };
       if (tx.market === 'sg') entry.dpu = tx.dpu || 0;
       arr.push(entry);
@@ -566,8 +642,8 @@ function render() {
   document.getElementById('s-us-pct').textContent = ((usMVsgd/total)*100).toFixed(1) + '% of portfolio';
   document.getElementById('s-sg-val').textContent = 'SGD ' + f(sgMVsgd, 0);
   document.getElementById('s-sg-pct').textContent = ((sgMVsgd/total)*100).toFixed(1) + '% of portfolio';
-  document.getElementById('s-div-total').textContent = 'SGD ' + f(sgDivEst, 0);
-  document.getElementById('s-div-sub').textContent = 'across ' + sgStocks.length + ' SG positions';
+  document.getElementById('s-en-val').textContent = 'SGD ' + f(enMVsgd, 0);
+  document.getElementById('s-en-pct').textContent = ((enMVsgd/total)*100).toFixed(1) + '% of portfolio';
   document.getElementById('s-div-recv').textContent = 'SGD ' + f(divRecv, 2);
   document.getElementById('s-div-recv-sub').textContent = dividends.length + ' payment' + (dividends.length!==1?'s':'') + ' logged';
 
@@ -921,16 +997,22 @@ document.querySelectorAll('.modal-bg').forEach(bg => {
 
 // ── INIT — load from Supabase ─────────────────────────────
 async function init() {
-  setStatus('⟳ Loading from cloud…');
+  setStatus('⟳ Loading…');
   try {
-    [transactions, dividends] = await Promise.all([
+    // Load Supabase data and live prices in parallel
+    const [txData, divData] = await Promise.all([
       supa.select('transactions'),
-      supa.select('dividends')
+      supa.select('dividends'),
     ]);
-    setStatus('✓ Synced · ' + new Date().toLocaleTimeString('en-SG', {hour:'2-digit',minute:'2-digit'}));
+    transactions = txData;
+    dividends    = divData;
+
+    // Fetch prices (non-blocking — renders with snapshot if it fails)
+    await fetchLivePrices();
+    FX = fxRate; // sync FX to live rate
     render();
   } catch(e) {
-    setStatus('⚠ Could not connect to Supabase — check tables are created', true);
+    setStatus('⚠ Could not connect — check Supabase tables are created', true);
     transactions = []; dividends = [];
     render();
   }
