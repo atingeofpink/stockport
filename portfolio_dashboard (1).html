@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portfolio — Cheryl Ng</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0a0c10; --surface:#111318; --surface2:#181c24;
+    --border:rgba(255,255,255,0.07); --border2:rgba(255,255,255,0.13);
+    --text:#e8eaf0; --muted:#6b7280; --accent:#c8f55a;
+    --red:#f55a7a; --green:#5af5a0; --us:#7eb3ff; --sg:#ffb347; --en:#a78bfa;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden}
+  body::before{content:'';position:fixed;top:-40%;left:-20%;width:80vw;height:80vh;background:radial-gradient(ellipse,rgba(126,179,255,0.05) 0%,transparent 65%);pointer-events:none;z-index:0}
+  body::after{content:'';position:fixed;bottom:-30%;right:-10%;width:60vw;height:60vh;background:radial-gradient(ellipse,rgba(255,179,71,0.04) 0%,transparent 65%);pointer-events:none;z-index:0}
+  .page{max-width:1200px;margin:0 auto;padding:44px 36px 80px;position:relative;z-index:1}
+
+  /* HEADER */
+  header{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:24px;margin-bottom:36px;border-bottom:1px solid var(--border)}
+  header h1{font-family:'DM Serif Display',serif;font-size:2.5rem;font-weight:400;letter-spacing:-.02em;line-height:1}
+  .header-sub{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-top:7px}
+  .header-right{text-align:right}
+  .total-num{font-family:'DM Serif Display',serif;font-size:2.8rem;letter-spacing:-.03em;color:var(--accent);line-height:1}
+  .total-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-top:5px}
+
+  /* TABS */
+  .tabs{display:flex;gap:4px;margin-bottom:32px;background:var(--surface);padding:4px;border-radius:10px;width:fit-content;border:1px solid var(--border)}
+  .tab{padding:8px 22px;border-radius:7px;cursor:pointer;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.05em;color:var(--muted);transition:all .2s;border:none;background:none}
+  .tab.active{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+  .tab:hover:not(.active){color:var(--text)}
+  .panel{display:none}.panel.active{display:block}
+
+  /* SUMMARY CARDS */
+  .summary-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:36px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px 22px;transition:border-color .2s}
+  .card:hover{border-color:var(--border2)}
+  .card-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+  .card-val{font-family:'DM Serif Display',serif;font-size:1.6rem;letter-spacing:-.02em;line-height:1}
+  .card-sub{font-size:11px;color:var(--muted);margin-top:5px;font-family:'DM Mono',monospace}
+  .pos{color:var(--green)}.neg{color:var(--red)}
+
+  /* SECTION */
+  .section{margin-bottom:40px}
+  .section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+  .section-title{display:flex;align-items:center;gap:10px;font-family:'DM Serif Display',serif;font-size:1.35rem;font-weight:400}
+  .section-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+  .section-meta{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.07em}
+
+  /* TABLE */
+  .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+  .table-scroll{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;min-width:760px}
+  thead th{padding:12px 14px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:right;border-bottom:1px solid var(--border);background:rgba(255,255,255,.02);font-weight:400;white-space:nowrap}
+  thead th:first-child,thead th:nth-child(2){text-align:left}
+  .col-divider{border-left:1px solid var(--border)!important}
+  tbody tr{border-bottom:1px solid rgba(255,255,255,.04);transition:background .13s}
+  tbody tr:last-child{border-bottom:none}
+  tbody tr:hover{background:rgba(255,255,255,.025)}
+  td{padding:11px 14px;text-align:right;vertical-align:middle;font-size:13px}
+  td:first-child,td:nth-child(2){text-align:left}
+  td.col-divider{border-left:1px solid rgba(255,255,255,.04)}
+  .rank{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);width:22px}
+  .sym-badge{font-family:'DM Mono',monospace;font-size:11.5px;font-weight:500;letter-spacing:.04em;background:var(--surface2);border:1px solid var(--border);padding:2px 8px;border-radius:5px;display:inline-block}
+  .sym-name{font-size:11px;color:var(--muted);margin-top:3px}
+  .num{font-family:'DM Mono',monospace;font-size:12.5px}
+  .pl-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-family:'DM Mono',monospace;font-size:11.5px;font-weight:500;white-space:nowrap}
+  .pl-pill.pos{background:rgba(90,245,160,.1);color:var(--green)}
+  .pl-pill.neg{background:rgba(245,90,122,.1);color:var(--red)}
+  .pct-badge{font-family:'DM Mono',monospace;font-size:11px;padding:2px 7px;border-radius:4px}
+  .pct-badge.pos{background:rgba(90,245,160,.08);color:var(--green)}
+  .pct-badge.neg{background:rgba(245,90,122,.08);color:var(--red)}
+  .wt-row{display:flex;align-items:center;justify-content:flex-end;gap:8px}
+  .wt-label{font-family:'DM Mono',monospace;font-size:11px;min-width:36px;text-align:right}
+  .wt-track{width:52px;height:4px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden}
+  .wt-fill{height:100%;border-radius:2px}
+  tfoot tr td{border-top:1px solid var(--border2);padding-top:12px;padding-bottom:12px;font-family:'DM Mono',monospace;font-size:12px;font-weight:500}
+  .footnote{font-size:11px;color:var(--muted);padding:10px 16px 14px;border-top:1px solid var(--border);font-family:'DM Mono',monospace;letter-spacing:.03em;background:rgba(255,255,255,.01)}
+
+  /* MODAL */
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:100;align-items:center;justify-content:center}
+  .modal-bg.open{display:flex}
+  .modal{background:var(--surface);border:1px solid var(--border2);border-radius:18px;padding:32px;width:480px;max-width:95vw;position:relative}
+  .modal h2{font-family:'DM Serif Display',serif;font-size:1.5rem;font-weight:400;margin-bottom:6px}
+  .modal-sub{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:24px}
+  .form-group{margin-bottom:16px}
+  .form-group label{display:block;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+  .form-group select,.form-group input{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;outline:none;transition:border-color .2s}
+  .form-group select:focus,.form-group input:focus{border-color:var(--accent)}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .btn{padding:10px 22px;border-radius:8px;border:none;cursor:pointer;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.06em;transition:all .2s}
+  .btn-primary{background:var(--accent);color:#0a0c10;font-weight:600}
+  .btn-primary:hover{background:#d4f870}
+  .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
+  .btn-ghost:hover{color:var(--text);border-color:var(--border2)}
+  .btn-row{display:flex;gap:10px;justify-content:flex-end;margin-top:24px}
+  .modal-close{position:absolute;top:16px;right:16px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1}
+  .modal-close:hover{color:var(--text)}
+
+  /* ACTION BUTTONS */
+  .action-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;transition:all .2s;letter-spacing:.04em}
+  .action-btn:hover{border-color:var(--border2);color:var(--text)}
+  .action-btn.accent{border-color:rgba(200,245,90,.3);color:var(--accent)}
+  .action-btn.accent:hover{background:rgba(200,245,90,.08)}
+
+  /* TRANSACTION LOG */
+  .tx-list{display:flex;flex-direction:column;gap:8px;margin-top:0}
+  .tx-item{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;transition:border-color .2s}
+  .tx-item:hover{border-color:var(--border2)}
+  .tx-badge{font-family:'DM Mono',monospace;font-size:11px;font-weight:500;padding:3px 9px;border-radius:5px;background:var(--surface2);border:1px solid var(--border);flex-shrink:0}
+  .tx-details{flex:1}
+  .tx-main{font-family:'DM Mono',monospace;font-size:12px;color:var(--text)}
+  .tx-sub{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:2px}
+  .tx-amount{font-family:'DM Serif Display',serif;font-size:1.1rem;text-align:right}
+  .tx-delete{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:4px;border-radius:4px;transition:color .15s;flex-shrink:0}
+  .tx-delete:hover{color:var(--red)}
+  .tx-type-buy{color:var(--us)}
+  .tx-type-div{color:var(--green)}
+  .empty-state{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);text-align:center;padding:32px;letter-spacing:.06em}
+
+  /* DIV SUMMARY */
+  .div-summary{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px 24px;margin-bottom:20px;display:flex;gap:32px;flex-wrap:wrap}
+  .div-stat{}
+  .div-stat-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+  .div-stat-val{font-family:'DM Serif Display',serif;font-size:1.5rem;letter-spacing:-.02em}
+
+  @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  .summary-grid{animation:fadeUp .3s ease both}
+  .section{animation:fadeUp .4s ease both}
+  .section:nth-child(1){animation-delay:.1s}
+  .section:nth-child(2){animation-delay:.2s}
+
+  @media(max-width:860px){.summary-grid{grid-template-columns:1fr 1fr};header{flex-direction:column;align-items:flex-start;gap:14px}}
+  @media(max-width:580px){.page{padding:24px 16px 60px};.summary-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <div>
+    <h1>My Portfolio</h1>
+    <div class="header-sub">Cheryl Ng &nbsp;·&nbsp; Syfe · Tiger · moomoo · Endowus</div>
+  </div>
+  <div class="header-right">
+    <div class="total-num" id="hdr-total">—</div>
+    <div class="total-label">Total · SGD equivalent</div>
+  </div>
+</header>
+
+<!-- SUMMARY CARDS -->
+<div class="summary-grid">
+  <div class="card">
+    <div class="card-label">Total Positions</div>
+    <div class="card-val" style="color:var(--accent)" id="s-pos">28</div>
+    <div class="card-sub">across 4 brokerages</div>
+  </div>
+  <div class="card">
+    <div class="card-label">US Stocks &amp; ETFs</div>
+    <div class="card-val" style="color:var(--us)" id="s-us-val">—</div>
+    <div class="card-sub" id="s-us-pct">—</div>
+  </div>
+  <div class="card">
+    <div class="card-label">SG Stocks / REITs</div>
+    <div class="card-val" style="color:var(--sg)" id="s-sg-val">—</div>
+    <div class="card-sub" id="s-sg-pct">—</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Est. Annual Dividends</div>
+    <div class="card-val" style="color:var(--accent)" id="s-div-total">—</div>
+    <div class="card-sub" id="s-div-sub">SG stocks</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Dividends Received</div>
+    <div class="card-val pos" id="s-div-recv">SGD 0</div>
+    <div class="card-sub" id="s-div-recv-sub">this year</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Total Unrealised P&amp;L</div>
+    <div class="card-val" id="s-pl">—</div>
+    <div class="card-sub" id="s-pl-sub">—</div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('portfolio',this)">Portfolio</button>
+  <button class="tab" onclick="switchTab('transactions',this)">Transactions</button>
+  <button class="tab" onclick="switchTab('dividends',this)">Dividends</button>
+</div>
+
+<!-- PORTFOLIO TAB -->
+<div class="panel active" id="panel-portfolio">
+
+  <!-- US STOCKS -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-title">
+        <span class="section-dot" style="background:var(--us);box-shadow:0 0 8px rgba(126,179,255,0.5)"></span>
+        US Stocks &amp; ETFs
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="section-meta" id="us-meta">—</span>
+        <button class="action-btn" onclick="openModal('buy','us')">+ Add Transaction</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table>
+          <thead><tr>
+            <th>#</th><th>Symbol</th><th>Qty</th>
+            <th>Avg Cost (USD)</th><th>Mkt Value (USD)</th><th>Mkt Value (SGD)</th>
+            <th class="col-divider">Unreal. P&amp;L (USD)</th><th>Unreal. P&amp;L (SGD)</th>
+            <th>P&amp;L %</th><th class="col-divider">Portfolio Wt.</th>
+          </tr></thead>
+          <tbody id="us-body"></tbody>
+          <tfoot><tr id="us-total"></tr></tfoot>
+        </table>
+      </div>
+      <div class="footnote">Duplicate tickers consolidated across brokerages. USD → SGD at 1.265 (Tiger Brokers rate, 28 Feb 2026).</div>
+    </div>
+  </div>
+
+  <!-- SG STOCKS -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-title">
+        <span class="section-dot" style="background:var(--sg);box-shadow:0 0 8px rgba(255,179,71,0.5)"></span>
+        SG Stocks &amp; REITs
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="section-meta" id="sg-meta">—</span>
+        <button class="action-btn" onclick="openModal('buy','sg')">+ Add Transaction</button>
+        <button class="action-btn accent" onclick="openModal('div','sg')">+ Log Dividend</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table>
+          <thead><tr>
+            <th>#</th><th>Symbol</th><th>Qty</th>
+            <th>Avg Cost (SGD)</th><th>Mkt Value (SGD)</th>
+            <th class="col-divider">Unreal. P&amp;L (SGD)</th><th>P&amp;L %</th>
+            <th class="col-divider">Est. Annual Div.</th><th>Div Yield</th>
+            <th class="col-divider">Portfolio Wt.</th>
+          </tr></thead>
+          <tbody id="sg-body"></tbody>
+          <tfoot><tr id="sg-total"></tr></tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ENDOWUS -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-title">
+        <span class="section-dot" style="background:var(--en);box-shadow:0 0 8px rgba(167,139,250,0.5)"></span>
+        Endowus Cash
+      </div>
+      <span class="section-meta" id="en-meta">—</span>
+    </div>
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table>
+          <thead><tr>
+            <th>#</th><th>Fund</th><th>Type</th><th>Mkt Value (SGD)</th>
+            <th class="col-divider">Unreal. P&amp;L (SGD)</th><th>P&amp;L %</th>
+            <th class="col-divider">Portfolio Wt.</th>
+          </tr></thead>
+          <tbody id="en-body"></tbody>
+          <tfoot><tr id="en-total"></tr></tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TRANSACTIONS TAB -->
+<div class="panel" id="panel-transactions">
+  <div class="section">
+    <div class="section-head">
+      <div class="section-title">
+        <span class="section-dot" style="background:var(--us)"></span>Transaction Log
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="action-btn" onclick="openModal('buy','us')">+ US Transaction</button>
+        <button class="action-btn" onclick="openModal('buy','sg')">+ SG Transaction</button>
+      </div>
+    </div>
+    <div id="tx-list-wrap"><div class="empty-state">No transactions logged yet.</div></div>
+  </div>
+</div>
+
+<!-- DIVIDENDS TAB -->
+<div class="panel" id="panel-dividends">
+  <div class="section">
+    <div class="section-head">
+      <div class="section-title">
+        <span class="section-dot" style="background:var(--green)"></span>Dividend Income
+      </div>
+      <button class="action-btn accent" onclick="openModal('div','sg')">+ Log Dividend</button>
+    </div>
+    <div class="div-summary">
+      <div class="div-stat">
+        <div class="div-stat-label">Total Received</div>
+        <div class="div-stat-val pos" id="div-total-recv">SGD 0</div>
+      </div>
+      <div class="div-stat">
+        <div class="div-stat-label">Est. Annual (DPU based)</div>
+        <div class="div-stat-val" style="color:var(--accent)" id="div-annual-est">—</div>
+      </div>
+      <div class="div-stat">
+        <div class="div-stat-label">Progress to SGD 6,500</div>
+        <div class="div-stat-val" id="div-progress">—</div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table>
+          <thead><tr>
+            <th>Date</th><th>Stock</th><th>Units</th>
+            <th>DPU (SGD)</th><th>Gross Amount</th><th>Tax / Fee</th>
+            <th>Net Received</th><th style="width:40px"></th>
+          </tr></thead>
+          <tbody id="div-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div id="div-empty" class="empty-state" style="display:none">No dividends logged yet. Click "+ Log Dividend" to add one.</div>
+  </div>
+</div>
+
+</div><!-- /page -->
+
+<!-- BUY MODAL -->
+<div class="modal-bg" id="modal-buy">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('buy')">✕</button>
+    <h2 id="modal-buy-title">Add Transaction</h2>
+    <div class="modal-sub" id="modal-buy-sub">Log a new purchase</div>
+    <div class="form-group">
+      <label>Stock Symbol</label>
+      <select id="buy-symbol"></select>
+    </div>
+    <div class="form-group" id="buy-new-symbol-wrap" style="display:none">
+      <label>New Symbol (e.g. AAPL, V68U)</label>
+      <input type="text" id="buy-new-symbol" placeholder="Enter ticker symbol" style="text-transform:uppercase">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Number of Units</label>
+        <input type="number" id="buy-qty" placeholder="e.g. 500" min="1" step="1">
+      </div>
+      <div class="form-group">
+        <label>Cost Per Unit</label>
+        <input type="number" id="buy-price" placeholder="e.g. 2.50" step="0.0001">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Brokerage / Other Costs</label>
+      <input type="number" id="buy-fee" placeholder="e.g. 10.00 (optional)" step="0.01" value="0">
+    </div>
+    <div class="form-group">
+      <label>Date</label>
+      <input type="date" id="buy-date">
+    </div>
+    <div id="buy-preview" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-top:4px;display:none"></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="closeModal('buy')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitBuy()">Add Transaction</button>
+    </div>
+  </div>
+</div>
+
+<!-- DIVIDEND MODAL -->
+<div class="modal-bg" id="modal-div">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('div')">✕</button>
+    <h2>Log Dividend</h2>
+    <div class="modal-sub">Record a dividend payment received</div>
+    <div class="form-group">
+      <label>Stock</label>
+      <select id="div-symbol"></select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Units Held (at ex-date)</label>
+        <input type="number" id="div-qty" placeholder="Auto-fills" step="1">
+      </div>
+      <div class="form-group">
+        <label>DPU / DPS (SGD)</label>
+        <input type="number" id="div-dpu" placeholder="e.g. 0.152" step="0.0001">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Tax Withheld / Fees (SGD)</label>
+        <input type="number" id="div-tax" placeholder="0.00" step="0.01" value="0">
+      </div>
+      <div class="form-group">
+        <label>Date Received</label>
+        <input type="date" id="div-date">
+      </div>
+    </div>
+    <div id="div-preview" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-top:4px;display:none"></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="closeModal('div')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitDiv()">Log Dividend</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+// ── SUPABASE CONFIG ───────────────────────────────────────
+const SUPA_URL = 'https://nninkozbzhlwunqbcyty.supabase.co';
+const SUPA_KEY = 'sb_publishable_txoZD2zujQzGpZXCQKSKww_4z7hpecN';
+
+const supa = {
+  async select(table) {
+    const r = await fetch(`${SUPA_URL}/rest/v1/${table}?select=*&order=created_at.asc`, {
+      headers: { 'apikey': SUPA_KEY, 'Content-Type': 'application/json' }
+    });
+    if (!r.ok) throw new Error(`SELECT ${table} failed: ${r.status}`);
+    return r.json();
+  },
+  async insert(table, row) {
+    const r = await fetch(`${SUPA_URL}/rest/v1/${table}`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPA_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify(row)
+    });
+    if (!r.ok) throw new Error(`INSERT ${table} failed: ${r.status} ${await r.text()}`);
+    return r.json();
+  },
+  async delete(table, id) {
+    const r = await fetch(`${SUPA_URL}/rest/v1/${table}?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: { 'apikey': SUPA_KEY, 'Content-Type': 'application/json' }
+    });
+    if (!r.ok) throw new Error(`DELETE ${table} failed: ${r.status}`);
+  }
+};
+
+// ── BASE DATA (28 Feb 2026 snapshot) ─────────────────────
+const BASE_US = [
+  {symbol:'MSFT',name:'Microsoft',           qty:20, cost:8646.55, mv:7854.80,  pl:-791.75},
+  {symbol:'META',name:'Meta Platforms',      qty:7,  cost:4438.36, mv:4536.94,  pl:98.58  },
+  {symbol:'NET', name:'Cloudflare',          qty:16, cost:1827.92, mv:2812.65,  pl:984.73 },
+  {symbol:'NFLX',name:'Netflix',             qty:28, cost:2404.10, mv:2694.72,  pl:290.62 },
+  {symbol:'TSLA',name:'Tesla',               qty:18, cost:4959.78, mv:7245.18,  pl:2285.40},
+  {symbol:'CRWD',name:'CrowdStrike',         qty:9,  cost:2390.20, mv:3347.82,  pl:957.62 },
+  {symbol:'AXON',name:'Axon Enterprise',     qty:7,  cost:3439.49, mv:3796.80,  pl:357.31 },
+  {symbol:'GLD', name:'SPDR Gold Shares',    qty:9,  cost:3016.40, mv:4353.75,  pl:1337.35},
+  {symbol:'MA',  name:'Mastercard',          qty:10, cost:5304.00, mv:5172.10,  pl:-131.90},
+  {symbol:'NVDA',name:'NVIDIA',              qty:7,  cost:799.36,  mv:1240.33,  pl:440.97 },
+  {symbol:'AMD', name:'AMD',                 qty:5,  cost:1050.00, mv:1001.05,  pl:-48.95 },
+  {symbol:'MU',  name:'Micron Technology',   qty:3,  cost:993.00,  mv:1237.11,  pl:244.11 },
+  {symbol:'IBIT',name:'iShares Bitcoin ETF', qty:35, cost:2261.84, mv:1302.00,  pl:-959.84},
+  {symbol:'COPX',name:'Global X Copper ETF', qty:8,  cost:721.60,  mv:765.60,   pl:44.00  },
+  {symbol:'OKLO',name:'Oklo Inc.',           qty:10, cost:861.10,  mv:629.50,   pl:-231.60},
+  {symbol:'PATH',name:'UiPath',              qty:50, cost:652.33,  mv:536.50,   pl:-115.83},
+  {symbol:'NBIS',name:'NEBIUS',              qty:8,  cost:794.19,  mv:729.52,   pl:-64.67 },
+];
+
+const BASE_SG = [
+  {symbol:'D05', name:'DBS Group',                qty:750,   cost:24999, mv:42840, pl:17841, dpu:3.24 },
+  {symbol:'O39', name:'OCBC Bank',                qty:500,   cost:8534,  mv:10715, pl:2181,  dpu:0.99 },
+  {symbol:'A17U',name:'CapLand Ascendas REIT',    qty:7200,  cost:18620, mv:20376, pl:1756,  dpu:0.152},
+  {symbol:'J69U',name:'Frasers Cpt Tr',           qty:4100,  cost:9007,  mv:9389,  pl:382,   dpu:0.121},
+  {symbol:'BUOU',name:'Frasers L&C Tr',           qty:17100, cost:17783, mv:16929, pl:-854,  dpu:0.060},
+  {symbol:'M44U',name:'Mapletree Log Tr',         qty:3400,  cost:4407,  mv:4386,  pl:-21,   dpu:0.071},
+  {symbol:'C38U',name:'CapitaLand Integrated CT', qty:400,   cost:951,   mv:948,   pl:-3,    dpu:0.120},
+];
+
+const ENDOWUS = [
+  {name:'CASH$$$TREE',    type:'Flagship · Very Aggressive', mv:20929.41, pl:7670.81},
+  {name:'1FUND World',    type:'Fund Smart',                 mv:17370.95, pl:3648.45},
+  {name:'iShares S&P 500',type:'Fund Smart',                 mv:15247.04, pl:887.04 },
+  {name:'中国梦好日子',    type:'Fund Smart',                 mv:2036.19,  pl:36.19  },
+];
+
+const FX = 1.265;
+
+// ── STATE ─────────────────────────────────────────────────
+let transactions = [];
+let dividends    = [];
+let usStocks     = [];
+let sgStocks     = [];
+let isLoading    = true;
+
+// ── HELPERS ───────────────────────────────────────────────
+const f   = (n, dp=2) => Math.abs(n).toLocaleString('en-US', {minimumFractionDigits:dp, maximumFractionDigits:dp});
+const sgn = n => n >= 0 ? '+' : '−';
+const cl  = n => n >= 0 ? 'pos' : 'neg';
+const pp  = (pl, cost) => cost ? (pl/cost)*100 : 0;
+const today = () => new Date().toISOString().split('T')[0];
+
+function plPill(val, label) { return `<span class="pl-pill ${cl(val)}">${sgn(val)}${label}</span>`; }
+function pctBadge(val)      { return `<span class="pct-badge ${cl(val)}">${sgn(val)}${Math.abs(val).toFixed(1)}%</span>`; }
+function wtBar(pct, maxPct, color) {
+  const fill = Math.min(100,(pct/maxPct)*100).toFixed(1);
+  return `<div class="wt-row"><span class="wt-label" style="color:${color}">${pct.toFixed(1)}%</span><div class="wt-track"><div class="wt-fill" style="width:${fill}%;background:${color};opacity:.8"></div></div></div>`;
+}
+
+function setStatus(msg, isError=false) {
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = isError ? 'var(--red)' : 'var(--muted)';
+}
+
+// ── APPLY TRANSACTIONS → working arrays ──────────────────
+function applyTransactions() {
+  usStocks = BASE_US.map(h => ({...h}));
+  sgStocks = BASE_SG.map(h => ({...h}));
+
+  transactions.forEach(tx => {
+    const arr      = tx.market === 'us' ? usStocks : sgStocks;
+    const existing = arr.find(h => h.symbol === tx.symbol);
+    const txCost   = tx.qty * tx.price + (tx.fee || 0);
+
+    if (existing) {
+      existing.mv   = existing.mv + (tx.qty * tx.price);
+      existing.cost += txCost;
+      existing.qty  += tx.qty;
+      existing.pl   = existing.mv - existing.cost;
+    } else {
+      const newMV = tx.qty * tx.price;
+      const entry = { symbol:tx.symbol, name:tx.name||tx.symbol, qty:tx.qty, cost:txCost, mv:newMV, pl:newMV-txCost };
+      if (tx.market === 'sg') entry.dpu = tx.dpu || 0;
+      arr.push(entry);
+    }
+  });
+}
+
+// ── RENDER ────────────────────────────────────────────────
+function render() {
+  applyTransactions();
+
+  const usMVusd = usStocks.reduce((s,h) => s+h.mv, 0);
+  const usMVsgd = usMVusd * FX;
+  const usPLusd = usStocks.reduce((s,h) => s+h.pl, 0);
+  const usCost  = usStocks.reduce((s,h) => s+h.cost, 0);
+  const sgMVsgd = sgStocks.reduce((s,h) => s+h.mv, 0);
+  const sgPLsgd = sgStocks.reduce((s,h) => s+h.pl, 0);
+  const sgCost  = sgStocks.reduce((s,h) => s+h.cost, 0);
+  const sgDivEst= sgStocks.reduce((s,h) => s+(h.qty*(h.dpu||0)), 0);
+  const enMVsgd = ENDOWUS.reduce((s,h) => s+h.mv, 0);
+  const enPLsgd = ENDOWUS.reduce((s,h) => s+h.pl, 0);
+  const enCost  = ENDOWUS.reduce((s,h) => s+(h.mv-h.pl), 0);
+  const total   = usMVsgd + sgMVsgd + enMVsgd;
+  const divRecv = dividends.reduce((s,d) => s+d.net, 0);
+
+  document.getElementById('hdr-total').textContent = 'SGD ' + f(total, 0);
+  document.getElementById('s-pos').textContent = usStocks.length + sgStocks.length + ENDOWUS.length;
+
+  document.getElementById('s-us-val').textContent = 'SGD ' + f(usMVsgd, 0);
+  document.getElementById('s-us-pct').textContent = ((usMVsgd/total)*100).toFixed(1) + '% of portfolio';
+  document.getElementById('s-sg-val').textContent = 'SGD ' + f(sgMVsgd, 0);
+  document.getElementById('s-sg-pct').textContent = ((sgMVsgd/total)*100).toFixed(1) + '% of portfolio';
+  document.getElementById('s-div-total').textContent = 'SGD ' + f(sgDivEst, 0);
+  document.getElementById('s-div-sub').textContent = 'across ' + sgStocks.length + ' SG positions';
+  document.getElementById('s-div-recv').textContent = 'SGD ' + f(divRecv, 2);
+  document.getElementById('s-div-recv-sub').textContent = dividends.length + ' payment' + (dividends.length!==1?'s':'') + ' logged';
+
+  const totalPL   = usPLusd*FX + sgPLsgd + enPLsgd;
+  const totalCost = usCost*FX + sgCost + enCost;
+  const plEl = document.getElementById('s-pl');
+  plEl.className = 'card-val ' + cl(totalPL);
+  plEl.textContent = sgn(totalPL) + 'SGD ' + f(totalPL, 0);
+  document.getElementById('s-pl-sub').textContent = sgn(totalPL) + Math.abs(pp(totalPL,totalCost)).toFixed(1) + '% on cost';
+
+  document.getElementById('div-total-recv').textContent = 'SGD ' + f(divRecv, 2);
+  document.getElementById('div-annual-est').textContent = 'SGD ' + f(sgDivEst, 0);
+  const progress = Math.min(((divRecv/6500)*100), 999).toFixed(1);
+  const progEl = document.getElementById('div-progress');
+  progEl.textContent = progress + '%';
+  progEl.className = 'div-stat-val ' + (divRecv >= 6500 ? 'pos' : '');
+
+  // ── US TABLE
+  const usSorted = [...usStocks].sort((a,b) => (b.mv*FX)-(a.mv*FX));
+  const usMaxWt  = (usSorted[0].mv*FX/total)*100;
+  document.getElementById('us-meta').textContent =
+    `${usSorted.length} positions · USD ${f(usMVusd,0)} · SGD ${f(usMVsgd,0)}`;
+  document.getElementById('us-body').innerHTML = usSorted.map((h,i) => {
+    const mvS=h.mv*FX, plS=h.pl*FX, wt=(mvS/total)*100, pct=pp(h.pl,h.cost), avg=h.cost/h.qty;
+    return `<tr>
+      <td class="rank">${i+1}</td>
+      <td><div class="sym-badge" style="color:var(--us)">${h.symbol}</div><div class="sym-name">${h.name}</div></td>
+      <td class="num">${h.qty.toLocaleString()}</td>
+      <td class="num">${f(avg)}</td>
+      <td class="num">${f(h.mv)}</td>
+      <td class="num" style="color:rgba(126,179,255,.75)">SGD ${f(mvS,0)}</td>
+      <td class="col-divider">${plPill(h.pl, f(h.pl))}</td>
+      <td>${plPill(plS, 'SGD '+f(plS,0))}</td>
+      <td>${pctBadge(pct)}</td>
+      <td class="col-divider">${wtBar(wt, usMaxWt, 'var(--us)')}</td>
+    </tr>`;
+  }).join('');
+  const usTotPct=pp(usPLusd,usCost), usPLs=usPLusd*FX;
+  document.getElementById('us-total').innerHTML = `
+    <td></td><td style="font-size:10px;letter-spacing:.1em;color:var(--muted);font-family:'DM Mono',monospace">TOTAL</td>
+    <td></td><td></td>
+    <td class="num">USD ${f(usMVusd,0)}</td>
+    <td class="num" style="color:var(--us)">SGD ${f(usMVsgd,0)}</td>
+    <td class="col-divider">${plPill(usPLusd, f(usPLusd,0))}</td>
+    <td>${plPill(usPLs, 'SGD '+f(usPLs,0))}</td>
+    <td>${pctBadge(usTotPct)}</td>
+    <td class="col-divider"><div class="wt-row"><span class="wt-label" style="color:var(--us)">${((usMVsgd/total)*100).toFixed(1)}%</span></div></td>`;
+
+  // ── SG TABLE
+  const sgSorted = [...sgStocks].sort((a,b) => b.mv-a.mv);
+  const sgMaxWt  = (sgSorted[0].mv/total)*100;
+  document.getElementById('sg-meta').textContent = `${sgSorted.length} positions · SGD ${f(sgMVsgd,0)}`;
+  document.getElementById('sg-body').innerHTML = sgSorted.map((h,i) => {
+    const wt=(h.mv/total)*100, pct=pp(h.pl,h.cost), avg=h.cost/h.qty;
+    const pricePerUnit = h.mv/h.qty;
+    const divYield = (h.dpu && pricePerUnit) ? ((h.dpu/pricePerUnit)*100).toFixed(1)+'%' : '—';
+    const estDiv = h.qty*(h.dpu||0);
+    return `<tr>
+      <td class="rank">${i+1}</td>
+      <td><div class="sym-badge" style="color:var(--sg)">${h.symbol}</div><div class="sym-name">${h.name}</div></td>
+      <td class="num">${h.qty.toLocaleString()}</td>
+      <td class="num">${f(avg,3)}</td>
+      <td class="num">${f(h.mv,0)}</td>
+      <td class="col-divider">${plPill(h.pl, 'SGD '+f(h.pl,0))}</td>
+      <td>${pctBadge(pct)}</td>
+      <td class="col-divider"><span class="num" style="color:var(--accent)">SGD ${f(estDiv,0)}</span></td>
+      <td><span class="num" style="color:var(--muted)">${divYield}</span></td>
+      <td class="col-divider">${wtBar(wt, sgMaxWt, 'var(--sg)')}</td>
+    </tr>`;
+  }).join('');
+  const sgTotPct=pp(sgPLsgd,sgCost);
+  document.getElementById('sg-total').innerHTML = `
+    <td></td><td style="font-size:10px;letter-spacing:.1em;color:var(--muted);font-family:'DM Mono',monospace">TOTAL</td>
+    <td></td><td></td>
+    <td class="num" style="color:var(--sg)">SGD ${f(sgMVsgd,0)}</td>
+    <td class="col-divider">${plPill(sgPLsgd, 'SGD '+f(sgPLsgd,0))}</td>
+    <td>${pctBadge(sgTotPct)}</td>
+    <td class="col-divider num" style="color:var(--accent)">SGD ${f(sgDivEst,0)}</td>
+    <td></td>
+    <td class="col-divider"><div class="wt-row"><span class="wt-label" style="color:var(--sg)">${((sgMVsgd/total)*100).toFixed(1)}%</span></div></td>`;
+
+  // ── ENDOWUS TABLE
+  const enSorted = [...ENDOWUS].sort((a,b) => b.mv-a.mv);
+  const enMaxWt  = (enSorted[0].mv/total)*100;
+  document.getElementById('en-meta').textContent = `${enSorted.length} funds · SGD ${f(enMVsgd,0)}`;
+  document.getElementById('en-body').innerHTML = enSorted.map((h,i) => {
+    const wt=(h.mv/total)*100, cost=h.mv-h.pl, pct=pp(h.pl,cost);
+    return `<tr>
+      <td class="rank">${i+1}</td>
+      <td><div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:500;color:var(--en)">${h.name}</div><div class="sym-name">${h.type}</div></td>
+      <td style="text-align:left;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace">${h.type.split(' · ')[0]}</td>
+      <td class="num">${f(h.mv)}</td>
+      <td class="col-divider">${plPill(h.pl, 'SGD '+f(h.pl))}</td>
+      <td>${pctBadge(pct)}</td>
+      <td class="col-divider">${wtBar(wt, enMaxWt, 'var(--en)')}</td>
+    </tr>`;
+  }).join('');
+  const enTotPct=pp(enPLsgd,enCost);
+  document.getElementById('en-total').innerHTML = `
+    <td></td><td style="font-size:10px;letter-spacing:.1em;color:var(--muted);font-family:'DM Mono',monospace">TOTAL</td><td></td>
+    <td class="num" style="color:var(--en)">SGD ${f(enMVsgd,0)}</td>
+    <td class="col-divider">${plPill(enPLsgd, 'SGD '+f(enPLsgd,0))}</td>
+    <td>${pctBadge(enTotPct)}</td>
+    <td class="col-divider"><div class="wt-row"><span class="wt-label" style="color:var(--en)">${((enMVsgd/total)*100).toFixed(1)}%</span></div></td>`;
+
+  renderTransactions();
+  renderDividends();
+}
+
+// ── TRANSACTION LOG ───────────────────────────────────────
+function renderTransactions() {
+  if (!transactions.length) {
+    document.getElementById('tx-list-wrap').innerHTML =
+      '<div class="empty-state">No transactions yet.<br>Use "+ Add Transaction" next to each section to log a purchase.</div>';
+    return;
+  }
+  const sorted = [...transactions].sort((a,b) => b.date.localeCompare(a.date));
+  document.getElementById('tx-list-wrap').innerHTML = `<div class="tx-list">${sorted.map(tx => {
+    const total = tx.qty*tx.price + (tx.fee||0);
+    const ccy   = tx.market==='us'?'USD':'SGD';
+    const col   = tx.market==='us'?'var(--us)':'var(--sg)';
+    return `<div class="tx-item">
+      <div class="tx-badge" style="color:${col};border-color:${col}20">${tx.market.toUpperCase()}</div>
+      <div class="tx-badge" style="color:${col}">${tx.symbol}</div>
+      <div class="tx-details">
+        <div class="tx-main">${tx.qty.toLocaleString()} units @ ${ccy} ${f(tx.price,4)}</div>
+        <div class="tx-sub">${tx.date}${tx.fee>0?' · Brokerage: '+ccy+' '+f(tx.fee,2):''}${tx.name&&tx.name!==tx.symbol?' · '+tx.name:''}</div>
+      </div>
+      <div class="tx-amount" style="color:${col}">${ccy} ${f(total,2)}</div>
+      <button class="tx-delete" onclick="deleteTx('${tx.id}')" title="Remove">✕</button>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+// ── DIVIDEND LOG ──────────────────────────────────────────
+function renderDividends() {
+  const empty = document.getElementById('div-empty');
+  const table = document.querySelector('#panel-dividends .table-wrap');
+  if (!dividends.length) {
+    empty.style.display = 'block';
+    table.style.display = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+  table.style.display = 'block';
+  const sorted = [...dividends].sort((a,b) => b.date.localeCompare(a.date));
+  document.getElementById('div-body').innerHTML = sorted.map(d => {
+    const gross = d.qty * d.dpu;
+    return `<tr>
+      <td style="text-align:left;font-family:'DM Mono',monospace;font-size:12px">${d.date}</td>
+      <td style="text-align:left"><div class="sym-badge" style="color:var(--sg)">${d.symbol}</div></td>
+      <td class="num">${d.qty.toLocaleString()}</td>
+      <td class="num">${f(d.dpu,4)}</td>
+      <td class="num">SGD ${f(gross,2)}</td>
+      <td class="num" style="color:var(--red)">${d.tax>0?'−SGD '+f(d.tax,2):'—'}</td>
+      <td><span class="pl-pill pos">+SGD ${f(d.net,2)}</span></td>
+      <td><button class="tx-delete" onclick="deleteDiv('${d.id}')" title="Remove">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── MODAL — BUY ───────────────────────────────────────────
+let currentMarket = 'us';
+
+function openModal(type, market) {
+  if (type === 'buy') {
+    currentMarket = market;
+    applyTransactions();
+    const arr = market==='us' ? usStocks : sgStocks;
+    const ccy = market==='us' ? 'USD' : 'SGD';
+    document.getElementById('modal-buy-title').textContent = market==='us' ? 'Add US Transaction' : 'Add SG Transaction';
+    document.getElementById('modal-buy-sub').textContent   = `Log a purchase · amounts in ${ccy}`;
+    const sel = document.getElementById('buy-symbol');
+    sel.innerHTML =
+      `<option value="__new__">— Enter new symbol —</option>` +
+      arr.map(h=>`<option value="${h.symbol}">${h.symbol} — ${h.name}</option>`).join('');
+    sel.onchange = handleSymbolChange;
+    document.getElementById('buy-new-symbol-wrap').style.display = 'none';
+    document.getElementById('buy-new-symbol').value = '';
+    document.getElementById('buy-date').value  = today();
+    document.getElementById('buy-qty').value   = '';
+    document.getElementById('buy-price').value = '';
+    document.getElementById('buy-fee').value   = '0';
+    document.getElementById('buy-preview').style.display = 'none';
+    document.getElementById('modal-buy').classList.add('open');
+  } else {
+    applyTransactions();
+    const sel = document.getElementById('div-symbol');
+    sel.innerHTML = sgStocks.map(h=>`<option value="${h.symbol}">${h.symbol} — ${h.name}</option>`).join('');
+    sel.onchange  = autoFillDivQty;
+    document.getElementById('div-date').value  = today();
+    document.getElementById('div-qty').value   = '';
+    document.getElementById('div-dpu').value   = '';
+    document.getElementById('div-tax').value   = '0';
+    document.getElementById('div-preview').style.display = 'none';
+    autoFillDivQty();
+    document.getElementById('modal-div').classList.add('open');
+  }
+}
+
+function handleSymbolChange() {
+  const val = document.getElementById('buy-symbol').value;
+  document.getElementById('buy-new-symbol-wrap').style.display = val==='__new__' ? 'block' : 'none';
+  updateBuyPreview();
+}
+
+function closeModal(type) { document.getElementById('modal-'+type).classList.remove('open'); }
+
+function updateBuyPreview() {
+  const qty   = parseFloat(document.getElementById('buy-qty').value)   || 0;
+  const price = parseFloat(document.getElementById('buy-price').value) || 0;
+  const fee   = parseFloat(document.getElementById('buy-fee').value)   || 0;
+  const prev  = document.getElementById('buy-preview');
+  if (!qty || !price) { prev.style.display='none'; return; }
+  const total = qty*price + fee;
+  const ccy   = currentMarket==='us' ? 'USD' : 'SGD';
+  prev.style.display = 'block';
+  prev.innerHTML = `Total cost: <span style="color:var(--accent)">${ccy} ${f(total,2)}</span>
+    &nbsp;·&nbsp; ${qty.toLocaleString()} units @ ${ccy} ${f(price,4)}
+    ${fee>0?' + '+ccy+' '+f(fee,2)+' brokerage':''}`;
+}
+
+async function submitBuy() {
+  let sym = document.getElementById('buy-symbol').value;
+  if (sym === '__new__') {
+    sym = document.getElementById('buy-new-symbol').value.trim().toUpperCase();
+    if (!sym) { alert('Please enter a symbol.'); return; }
+  }
+  const qty   = parseInt(document.getElementById('buy-qty').value);
+  const price = parseFloat(document.getElementById('buy-price').value);
+  const fee   = parseFloat(document.getElementById('buy-fee').value) || 0;
+  const date  = document.getElementById('buy-date').value;
+  if (!qty || !price || qty<=0 || price<=0) { alert('Please fill in Units and Cost Per Unit.'); return; }
+
+  const arr   = currentMarket==='us' ? usStocks : sgStocks;
+  const stock = arr.find(h => h.symbol===sym);
+
+  const row = { symbol:sym, name:stock?stock.name:sym, market:currentMarket, qty, price, fee, date, dpu:stock?.dpu||0 };
+
+  const btn = document.querySelector('#modal-buy .btn-primary');
+  btn.textContent = 'Saving…'; btn.disabled = true;
+
+  try {
+    const [saved] = await supa.insert('transactions', row);
+    transactions.push(saved);
+    closeModal('buy');
+    render();
+    setStatus('✓ Saved · synced to cloud');
+    switchTab('transactions', document.querySelectorAll('.tab')[1]);
+    setTimeout(() => switchTab('portfolio', document.querySelectorAll('.tab')[0]), 1800);
+  } catch(e) {
+    setStatus('⚠ Save failed: ' + e.message, true);
+    alert('Could not save — check your Supabase tables are created.\n\n' + e.message);
+  } finally {
+    btn.textContent = 'Add Transaction'; btn.disabled = false;
+  }
+}
+
+// ── MODAL — DIVIDEND ─────────────────────────────────────
+function autoFillDivQty() {
+  const sym   = document.getElementById('div-symbol').value;
+  const stock = sgStocks.find(h => h.symbol===sym);
+  if (stock) {
+    document.getElementById('div-qty').value = stock.qty;
+    document.getElementById('div-dpu').value = stock.dpu || '';
+  }
+  updateDivPreview();
+}
+
+function updateDivPreview() {
+  const qty  = parseFloat(document.getElementById('div-qty').value)  || 0;
+  const dpu  = parseFloat(document.getElementById('div-dpu').value)  || 0;
+  const tax  = parseFloat(document.getElementById('div-tax').value)  || 0;
+  const prev = document.getElementById('div-preview');
+  if (!qty || !dpu) { prev.style.display='none'; return; }
+  const gross=qty*dpu, net=gross-tax;
+  prev.style.display = 'block';
+  prev.innerHTML = `Gross: <span style="color:var(--green)">SGD ${f(gross,2)}</span>
+    &nbsp;·&nbsp; Tax/Fee: SGD ${f(tax,2)}
+    &nbsp;·&nbsp; Net: <span style="color:var(--accent)">SGD ${f(net,2)}</span>`;
+}
+
+async function submitDiv() {
+  const sym  = document.getElementById('div-symbol').value;
+  const qty  = parseInt(document.getElementById('div-qty').value);
+  const dpu  = parseFloat(document.getElementById('div-dpu').value);
+  const tax  = parseFloat(document.getElementById('div-tax').value) || 0;
+  const date = document.getElementById('div-date').value;
+  if (!sym || !qty || !dpu) { alert('Please fill in Stock, Units and DPU.'); return; }
+  const net = qty*dpu - tax;
+  const row = { symbol:sym, qty, dpu, tax, net, date };
+
+  const btn = document.querySelector('#modal-div .btn-primary');
+  btn.textContent = 'Saving…'; btn.disabled = true;
+
+  try {
+    const [saved] = await supa.insert('dividends', row);
+    dividends.push(saved);
+    closeModal('div');
+    render();
+    setStatus('✓ Dividend saved · synced to cloud');
+    switchTab('dividends', document.querySelectorAll('.tab')[2]);
+  } catch(e) {
+    setStatus('⚠ Save failed: ' + e.message, true);
+    alert('Could not save dividend.\n\n' + e.message);
+  } finally {
+    btn.textContent = 'Log Dividend'; btn.disabled = false;
+  }
+}
+
+// ── DELETE ────────────────────────────────────────────────
+async function deleteTx(id) {
+  if (!confirm('Remove this transaction? Holdings will be recalculated.')) return;
+  try {
+    await supa.delete('transactions', id);
+    transactions = transactions.filter(t => t.id !== id);
+    render();
+    setStatus('✓ Transaction removed');
+  } catch(e) { setStatus('⚠ Delete failed', true); }
+}
+
+async function deleteDiv(id) {
+  if (!confirm('Remove this dividend entry?')) return;
+  try {
+    await supa.delete('dividends', id);
+    dividends = dividends.filter(d => d.id !== id);
+    render();
+    setStatus('✓ Dividend removed');
+  } catch(e) { setStatus('⚠ Delete failed', true); }
+}
+
+// ── TABS ──────────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── INPUT LISTENERS ───────────────────────────────────────
+document.getElementById('buy-qty').addEventListener('input',   updateBuyPreview);
+document.getElementById('buy-price').addEventListener('input', updateBuyPreview);
+document.getElementById('buy-fee').addEventListener('input',   updateBuyPreview);
+document.getElementById('div-qty').addEventListener('input',   updateDivPreview);
+document.getElementById('div-dpu').addEventListener('input',   updateDivPreview);
+document.getElementById('div-tax').addEventListener('input',   updateDivPreview);
+
+document.querySelectorAll('.modal-bg').forEach(bg => {
+  bg.addEventListener('click', e => { if (e.target===bg) bg.classList.remove('open'); });
+});
+
+// ── INIT — load from Supabase ─────────────────────────────
+async function init() {
+  setStatus('⟳ Loading from cloud…');
+  try {
+    [transactions, dividends] = await Promise.all([
+      supa.select('transactions'),
+      supa.select('dividends')
+    ]);
+    setStatus('✓ Synced · ' + new Date().toLocaleTimeString('en-SG', {hour:'2-digit',minute:'2-digit'}));
+    render();
+  } catch(e) {
+    setStatus('⚠ Could not connect to Supabase — check tables are created', true);
+    transactions = []; dividends = [];
+    render();
+  }
+}
+
+init();
+</script>
+</body>
+</html>
