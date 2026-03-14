@@ -222,7 +222,7 @@
           <tfoot><tr id="us-total"></tr></tfoot>
         </table>
       </div>
-      <div class="footnote">Prices fetched from Twelve Data on load (15-min delay for US, EOD for SGX). FX rate live from Twelve Data.</div>
+      <div class="footnote">US prices via Twelve Data (15-min delay). SG stock prices are snapshot values. FX rate live from Twelve Data.</div>
     </div>
   </div>
 
@@ -480,10 +480,8 @@ const supa = {
 const TD_KEY  = '117282f5fbd5498e9817b0e22057ab5f';
 const TD_BASE = 'https://api.twelvedata.com';
 
-// Map our symbols to Twelve Data format
-// SGX stocks need .SI suffix; US stocks are plain
+// US stocks fetched via Twelve Data; SG stocks use snapshot values
 const TD_SYMBOLS_US = ['MSFT','META','NET','NFLX','TSLA','CRWD','AXON','GLD','MA','NVDA','AMD','MU','IBIT','COPX','OKLO','PATH','NBIS'];
-const TD_SYMBOLS_SG = ['D05','O39','A17U','J69U','BUOU','M44U','C38U'];
 
 // Cache prices so we don't re-fetch on every render
 let livePrices = {}; // { 'MSFT': 392.50, 'D05.SI': 38.20, ... }
@@ -491,42 +489,48 @@ let fxRate     = 1.265; // updated from Twelve Data if available
 let pricesLoadedAt = null;
 
 async function fetchLivePrices() {
-  setStatus('⟳ Fetching live prices…');
-  try {
-    // Batch all symbols in one call — Twelve Data supports comma-separated
-    const usList = TD_SYMBOLS_US.join(',');
-    const sgList = TD_SYMBOLS_SG.map(s => s + '.SI').join(',');
-    const allSymbols = usList + ',' + sgList;
+  setStatus('⟳ Fetching US prices…');
 
-    const [priceRes, fxRes] = await Promise.all([
-      fetch(`${TD_BASE}/price?symbol=${allSymbols}&apikey=${TD_KEY}`),
-      fetch(`${TD_BASE}/exchange_rate?symbol=USD/SGD&apikey=${TD_KEY}`)
-    ]);
+  async function fetchBatch(symbols) {
+    const joined = symbols.join(',');
+    const res  = await fetch(`${TD_BASE}/price?symbol=${joined}&apikey=${TD_KEY}`);
+    const data = await res.json();
+    if (data.price && !data.code && symbols.length === 1) return { [symbols[0]]: data };
+    return data;
+  }
 
-    const priceData = await priceRes.json();
-    const fxData    = await fxRes.json();
-
-    // Parse FX rate
-    if (fxData.rate) fxRate = parseFloat(fxData.rate);
-
-    // Parse prices — Twelve Data returns { MSFT: { price: "392.50" }, ... }
-    // or just { price: "392.50" } if only one symbol
-    const parsed = Object.keys(priceData).length === 1 && priceData.price
-      ? { [allSymbols]: priceData }
-      : priceData;
-
-    Object.entries(parsed).forEach(([sym, data]) => {
-      if (data && data.price && !data.code) {
-        livePrices[sym] = parseFloat(data.price);
+  function parseBatch(data) {
+    Object.entries(data).forEach(([sym, d]) => {
+      if (d && d.price && !d.code && !d.status) {
+        const p = parseFloat(d.price);
+        if (!isNaN(p) && p > 0) livePrices[sym] = p;
       }
     });
+  }
 
+  try {
+    // Fetch FX rate
+    const fxRes  = await fetch(`${TD_BASE}/exchange_rate?symbol=USD/SGD&apikey=${TD_KEY}`);
+    const fxData = await fxRes.json();
+    if (fxData.rate && !fxData.code) fxRate = parseFloat(fxData.rate);
+
+    // Fetch US symbols in batches of 8 (free tier limit)
+    const BATCH = 8;
+    for (let i = 0; i < TD_SYMBOLS_US.length; i += BATCH) {
+      const batch = TD_SYMBOLS_US.slice(i, i + BATCH);
+      const data  = await fetchBatch(batch);
+      parseBatch(data);
+      if (i + BATCH < TD_SYMBOLS_US.length) await new Promise(r => setTimeout(r, 1100));
+    }
+
+    const loaded  = Object.keys(livePrices).length;
+    const timeStr = new Date().toLocaleTimeString('en-SG', {hour:'2-digit', minute:'2-digit'});
+    setStatus(`✓ ${loaded} US prices updated ${timeStr} · FX ${fxRate.toFixed(4)} · SG prices are snapshot`);
     pricesLoadedAt = new Date();
-    const timeStr = pricesLoadedAt.toLocaleTimeString('en-SG', {hour:'2-digit', minute:'2-digit'});
-    setStatus(`✓ Prices updated ${timeStr} · FX ${fxRate.toFixed(4)}`);
     return true;
   } catch(e) {
-    setStatus('⚠ Price fetch failed — using last known values', true);
+    setStatus('⚠ Price fetch failed — using snapshot values', true);
+    console.error('fetchLivePrices error:', e);
     return false;
   }
 }
@@ -635,9 +639,8 @@ function applyTransactions() {
   usStocks = BASE_US.map(h => ({...h}));
   sgStocks = BASE_SG.map(h => ({...h}));
 
-  // Apply live prices to base holdings first
+  // Apply live prices to US holdings; SG uses snapshot values
   applyLivePrices(usStocks, 'us');
-  applyLivePrices(sgStocks, 'sg');
 
   transactions.forEach(tx => {
     const arr      = tx.market === 'us' ? usStocks : sgStocks;
@@ -653,8 +656,7 @@ function applyTransactions() {
       existing.pl    = existing.mv - existing.cost;
     } else {
       // New position — use live price if available, else buy price
-      const tdSym = tx.market === 'sg' ? tx.symbol + '.SI' : tx.symbol;
-      const liveP = livePrices[tdSym] || tx.price;
+      const liveP = tx.market === 'us' ? (livePrices[tx.symbol] || tx.price) : tx.price;
       const newMV = liveP * tx.qty;
       const entry = { symbol:tx.symbol, name:tx.name||tx.symbol, qty:tx.qty, cost:txCost, mv:newMV, pl:newMV-txCost };
       if (tx.market === 'sg') entry.dpu = tx.dpu || 0;
