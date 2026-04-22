@@ -441,38 +441,34 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 // ── SUPABASE CONFIG ───────────────────────────────────────
 const SUPA_URL = 'https://nninkozbzhlwunqbcyty.supabase.co';
 const SUPA_KEY = 'sb_publishable_txoZD2zujQzGpZXCQKSKww_4z7hpecN';
 
+// Use official Supabase JS client — handles Safari CORS preflight correctly
+const db = supabase.createClient(SUPA_URL, SUPA_KEY);
+
 const supa = {
   async select(table) {
-    const r = await fetch(`${SUPA_URL}/rest/v1/${table}?select=*&order=created_at.asc`, {
-      headers: { 'apikey': SUPA_KEY, 'Content-Type': 'application/json' }
-    });
-    if (!r.ok) throw new Error(`SELECT ${table} failed: ${r.status}`);
-    return r.json();
+    const { data, error } = await db.from(table).select('*').order('created_at', { ascending: true });
+    if (error) throw new Error(`SELECT ${table} failed: ${error.message}`);
+    return data;
   },
   async insert(table, row) {
-    const r = await fetch(`${SUPA_URL}/rest/v1/${table}`, {
-      method: 'POST',
-      headers: {
-        'apikey': SUPA_KEY,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=representation'
-      },
-      body: JSON.stringify(row)
-    });
-    if (!r.ok) throw new Error(`INSERT ${table} failed: ${r.status} ${await r.text()}`);
-    return r.json();
+    const { data, error } = await db.from(table).insert(row).select();
+    if (error) throw new Error(`INSERT ${table} failed: ${error.message}`);
+    return data;
+  },
+  async update(table, id, updates) {
+    const { data, error } = await db.from(table).update(updates).eq('id', id).select();
+    if (error) throw new Error(`UPDATE ${table} failed: ${error.message}`);
+    return data;
   },
   async delete(table, id) {
-    const r = await fetch(`${SUPA_URL}/rest/v1/${table}?id=eq.${id}`, {
-      method: 'DELETE',
-      headers: { 'apikey': SUPA_KEY, 'Content-Type': 'application/json' }
-    });
-    if (!r.ok) throw new Error(`DELETE ${table} failed: ${r.status}`);
+    const { error } = await db.from(table).delete().eq('id', id);
+    if (error) throw new Error(`DELETE ${table} failed: ${error.message}`);
   }
 };
 
@@ -948,13 +944,7 @@ async function submitEnEdit() {
     const existing = endowusValues[fund.name];
     if (existing && existing.id) {
       // Update existing row
-      const r = await fetch(`${SUPA_URL}/rest/v1/endowus_values?id=eq.${existing.id}`, {
-        method: 'PATCH',
-        headers: { 'apikey': SUPA_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
-        body: JSON.stringify({ mv, cost })
-      });
-      if (!r.ok) throw new Error(await r.text());
-      const [updated] = await r.json();
+      const [updated] = await supa.update('endowus_values', existing.id, { mv, cost });
       endowusValues[fund.name] = { mv: updated.mv, cost: updated.cost, id: updated.id };
     } else {
       // Insert new row
