@@ -148,7 +148,10 @@
   <div class="header-right">
     <div class="total-num" id="hdr-total">—</div>
     <div class="total-label">Total · SGD equivalent</div>
-    <div id="sync-status" style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.08em;margin-top:6px">⟳ Loading…</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+      <div id="sync-status" style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.08em">⟳ Loading…</div>
+      <button onclick="resetToken()" title="Update GitHub token" style="background:none;border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:9px;padding:2px 6px;border-radius:4px;font-family:'DM Mono',monospace;letter-spacing:.05em">⚙ token</button>
+    </div>
   </div>
 </header>
 
@@ -323,8 +326,8 @@
       <div class="table-scroll">
         <table>
           <thead><tr>
-            <th>Date</th><th>Stock</th><th>Units</th>
-            <th>DPU (SGD)</th><th>Gross Amount</th><th>Tax / Fee</th>
+            <th>Date</th><th>Stock</th>
+            <th>Gross Amount</th><th>Tax / Fee</th>
             <th>Net Received</th><th style="width:40px"></th>
           </tr></thead>
           <tbody id="div-body"></tbody>
@@ -389,23 +392,17 @@
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label>Units Held (at ex-date)</label>
-        <input type="number" id="div-qty" placeholder="Auto-fills" step="1">
+        <label>Gross Amount (SGD)</label>
+        <input type="number" id="div-gross" placeholder="e.g. 607.50" step="0.01" oninput="updateDivPreview()">
       </div>
-      <div class="form-group">
-        <label>DPU / DPS (SGD)</label>
-        <input type="number" id="div-dpu" placeholder="e.g. 0.152" step="0.0001">
-      </div>
-    </div>
-    <div class="form-row">
       <div class="form-group">
         <label>Tax Withheld / Fees (SGD)</label>
-        <input type="number" id="div-tax" placeholder="0.00" step="0.01" value="0">
+        <input type="number" id="div-tax" placeholder="0.00" step="0.01" value="0" oninput="updateDivPreview()">
       </div>
-      <div class="form-group">
-        <label>Date Received</label>
-        <input type="date" id="div-date">
-      </div>
+    </div>
+    <div class="form-group">
+      <label>Date Received</label>
+      <input type="date" id="div-date">
     </div>
     <div id="div-preview" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-top:4px;display:none"></div>
     <div class="btn-row">
@@ -653,7 +650,7 @@ let dividends     = [];
 let usStocks      = [];
 let sgStocks      = [];
 let isLoading     = true;
-let endowusValues = {}; // { 'CASH$$$TREE': {mv, cost}, ... } — overrides from Supabase
+let endowusValues = {}; // { 'CASH$$$TREE': {mv, cost}, ... } — overrides from GitHub
 
 // ── ENDOWUS VALUE HELPERS ────────────────────────────────
 function loadEndowusValues() {
@@ -905,13 +902,10 @@ function renderDividends() {
   table.style.display = 'block';
   const sorted = [...dividends].sort((a,b) => b.date.localeCompare(a.date));
   document.getElementById('div-body').innerHTML = sorted.map(d => {
-    const gross = d.qty * d.dpu;
     return `<tr>
       <td style="text-align:left;font-family:'DM Mono',monospace;font-size:12px">${d.date}</td>
       <td style="text-align:left"><div class="sym-badge" style="color:var(--sg)">${d.symbol}</div></td>
-      <td class="num">${d.qty.toLocaleString()}</td>
-      <td class="num">${f(d.dpu,4)}</td>
-      <td class="num">SGD ${f(gross,2)}</td>
+      <td class="num">SGD ${f(d.gross||d.net,2)}</td>
       <td class="num" style="color:var(--red)">${d.tax>0?'−SGD '+f(d.tax,2):'—'}</td>
       <td><span class="pl-pill pos">+SGD ${f(d.net,2)}</span></td>
       <td><button class="tx-delete" onclick="deleteDiv('${d.id}')" title="Remove">✕</button></td>
@@ -949,11 +943,9 @@ function openModal(type, market) {
     sel.innerHTML = sgStocks.map(h=>`<option value="${h.symbol}">${h.symbol} — ${h.name}</option>`).join('');
     sel.onchange  = autoFillDivQty;
     document.getElementById('div-date').value  = today();
-    document.getElementById('div-qty').value   = '';
-    document.getElementById('div-dpu').value   = '';
+    document.getElementById('div-gross').value = '';
     document.getElementById('div-tax').value   = '0';
     document.getElementById('div-preview').style.display = 'none';
-    autoFillDivQty();
     document.getElementById('modal-div').classList.add('open');
   }
 }
@@ -1067,30 +1059,19 @@ async function submitBuy() {
     setTimeout(() => switchTab('portfolio', document.querySelectorAll('.tab')[0]), 1800);
   } catch(e) {
     setStatus('⚠ Save failed: ' + e.message, true);
-    alert('Could not save — check your Supabase tables are created.\n\n' + e.message);
+    alert('Could not save — check your GitHub token is valid.\n\n' + e.message);
   } finally {
     btn.textContent = 'Add Transaction'; btn.disabled = false;
   }
 }
 
 // ── MODAL — DIVIDEND ─────────────────────────────────────
-function autoFillDivQty() {
-  const sym   = document.getElementById('div-symbol').value;
-  const stock = sgStocks.find(h => h.symbol===sym);
-  if (stock) {
-    document.getElementById('div-qty').value = stock.qty;
-    document.getElementById('div-dpu').value = stock.dpu || '';
-  }
-  updateDivPreview();
-}
-
 function updateDivPreview() {
-  const qty  = parseFloat(document.getElementById('div-qty').value)  || 0;
-  const dpu  = parseFloat(document.getElementById('div-dpu').value)  || 0;
-  const tax  = parseFloat(document.getElementById('div-tax').value)  || 0;
-  const prev = document.getElementById('div-preview');
-  if (!qty || !dpu) { prev.style.display='none'; return; }
-  const gross=qty*dpu, net=gross-tax;
+  const gross = parseFloat(document.getElementById('div-gross').value) || 0;
+  const tax   = parseFloat(document.getElementById('div-tax').value)   || 0;
+  const prev  = document.getElementById('div-preview');
+  if (!gross) { prev.style.display='none'; return; }
+  const net = gross - tax;
   prev.style.display = 'block';
   prev.innerHTML = `Gross: <span style="color:var(--green)">SGD ${f(gross,2)}</span>
     &nbsp;·&nbsp; Tax/Fee: SGD ${f(tax,2)}
@@ -1098,14 +1079,13 @@ function updateDivPreview() {
 }
 
 async function submitDiv() {
-  const sym  = document.getElementById('div-symbol').value;
-  const qty  = parseInt(document.getElementById('div-qty').value);
-  const dpu  = parseFloat(document.getElementById('div-dpu').value);
-  const tax  = parseFloat(document.getElementById('div-tax').value) || 0;
-  const date = document.getElementById('div-date').value;
-  if (!sym || !qty || !dpu) { alert('Please fill in Stock, Units and DPU.'); return; }
-  const net = qty*dpu - tax;
-  const row = { symbol:sym, qty, dpu, tax, net, date };
+  const sym   = document.getElementById('div-symbol').value;
+  const gross = parseFloat(document.getElementById('div-gross').value);
+  const tax   = parseFloat(document.getElementById('div-tax').value) || 0;
+  const date  = document.getElementById('div-date').value;
+  if (!sym || !gross || gross <= 0) { alert('Please fill in Stock and Gross Amount.'); return; }
+  const net = gross - tax;
+  const row = { symbol:sym, gross, tax, net, date };
 
   const btn = document.querySelector('#modal-div .btn-primary');
   btn.textContent = 'Saving…'; btn.disabled = true;
@@ -1160,18 +1140,22 @@ document.getElementById('en-cost').addEventListener('input', updateEnPreview);
 document.getElementById('buy-qty').addEventListener('input',   updateBuyPreview);
 document.getElementById('buy-price').addEventListener('input', updateBuyPreview);
 document.getElementById('buy-fee').addEventListener('input',   updateBuyPreview);
-document.getElementById('div-qty').addEventListener('input',   updateDivPreview);
-document.getElementById('div-dpu').addEventListener('input',   updateDivPreview);
 document.getElementById('div-tax').addEventListener('input',   updateDivPreview);
 
 document.querySelectorAll('.modal-bg').forEach(bg => {
   bg.addEventListener('click', e => { if (e.target===bg) bg.classList.remove('open'); });
 });
 
-// ── INIT — load from Supabase ─────────────────────────────
+// ── INIT ────────────────────────────────────────────────────
 // ── TOKEN SETUP ───────────────────────────────────────────
 function showTokenSetup() {
   document.getElementById('modal-token').classList.add('open');
+}
+
+function resetToken() {
+  localStorage.removeItem('gh_token');
+  document.getElementById('token-input').value = '';
+  showTokenSetup();
 }
 
 async function submitToken() {
