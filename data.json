@@ -71,6 +71,18 @@
       "dpu": 0.152,
       "id": "55948074-cc53-4345-b837-2e7c6fb3a294",
       "created_at": "2026-04-26T11:16:32.493Z"
+    },
+    {
+      "symbol": "MA",
+      "name": "Mastercard",
+      "market": "us",
+      "qty": 3,
+      "price": 505.41,
+      "fee": 0,
+      "date": "2026-03-11",
+      "dpu": 0,
+      "id": "0ff5988e-f6e4-44c9-8914-ea14e1a1e83a",
+      "created_at": "2026-04-26T11:17:34.566Z"
     }
   ],
   "dividends": [
