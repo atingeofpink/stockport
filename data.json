@@ -23,6 +23,18 @@
       "dpu": 0.12,
       "id": "79ec9a97-31a5-456d-8321-e2aa1b9f6acd",
       "created_at": "2026-04-26T10:58:00.672Z"
+    },
+    {
+      "symbol": "A17U",
+      "name": "CapLand Ascendas REIT",
+      "market": "sg",
+      "qty": 500,
+      "price": 2.6,
+      "fee": 2.73,
+      "date": "2026-03-06",
+      "dpu": 0.152,
+      "id": "3e9ff5a3-842c-475c-a020-f3b38d22b8e1",
+      "created_at": "2026-04-26T11:00:00.539Z"
     }
   ],
   "dividends": [
