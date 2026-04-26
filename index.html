@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -222,7 +221,7 @@
           <tfoot><tr id="us-total"></tr></tfoot>
         </table>
       </div>
-      <div class="footnote">US prices via Twelve Data (15-min delay). SG stock prices are snapshot values. FX rate live from Twelve Data.</div>
+      <div class="footnote">US prices via Twelve Data (15-min delay). SG prices are snapshot values. FX rate live from Twelve Data. Data stored in GitHub.</div>
     </div>
   </div>
 
@@ -441,34 +440,100 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<!-- TOKEN SETUP MODAL -->
+<div class="modal-bg" id="modal-token">
+  <div class="modal">
+    <h2>GitHub Token Setup</h2>
+    <div class="modal-sub">Enter your GitHub Personal Access Token to enable data sync. It is stored in your browser only — never sent to any server other than GitHub.</div>
+    <div class="form-group" style="margin-top:20px">
+      <label>Personal Access Token</label>
+      <input type="password" id="token-input" placeholder="ghp_..." autocomplete="off" style="font-family:'DM Mono',monospace;letter-spacing:.05em">
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:8px;font-family:'DM Mono',monospace;line-height:1.6">
+      Generate at: GitHub → Settings → Developer settings<br>
+      → Personal access tokens → Tokens (classic)<br>
+      → New token → tick <strong style="color:var(--text)">repo</strong> → Generate
+    </div>
+    <div class="btn-row" style="margin-top:20px">
+      <button class="btn btn-primary" onclick="submitToken()">Save Token</button>
+    </div>
+  </div>
+</div>
+
 <script>
-// ── SUPABASE CONFIG ───────────────────────────────────────
-const SUPA_URL = 'https://nninkozbzhlwunqbcyty.supabase.co';
-const SUPA_KEY = 'sb_publishable_txoZD2zujQzGpZXCQKSKww_4z7hpecN';
+// ── GITHUB STORAGE CONFIG ────────────────────────────────
+const GH_REPO = 'atingeofpink/stockport';
+const GH_FILE = 'data.json';
+const GH_API  = `https://api.github.com/repos/${GH_REPO}/contents/${GH_FILE}`;
 
-// Use official Supabase JS client — handles Safari CORS preflight correctly
-const db = supabase.createClient(SUPA_URL, SUPA_KEY);
+function getToken() { return localStorage.getItem('gh_token') || ''; }
+function saveToken(t) { localStorage.setItem('gh_token', t.trim()); }
 
+// In-memory store — loaded once on init, written back on every change
+let store = { transactions: [], dividends: [], endowus_values: [] };
+let ghSha = null; // needed for GitHub file updates
+
+async function ghLoad() {
+  if (!getToken()) throw new Error('NO_TOKEN');
+  const r = await fetch(GH_API, {
+    headers: { 'Authorization': `Bearer ${getToken()}`, 'Accept': 'application/vnd.github+json' }
+  });
+  if (r.status === 404) {
+    // File doesn't exist yet — start fresh
+    store  = { transactions: [], dividends: [], endowus_values: [] };
+    ghSha  = null;
+    return;
+  }
+  if (!r.ok) throw new Error(`GitHub load failed: ${r.status}`);
+  const meta    = await r.json();
+  ghSha         = meta.sha;
+  const decoded = atob(meta.content.split('\n').join(''));
+  store         = JSON.parse(decoded);
+  // Ensure all keys exist
+  store.transactions   = store.transactions   || [];
+  store.dividends      = store.dividends      || [];
+  store.endowus_values = store.endowus_values || [];
+}
+
+async function ghSave() {
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(store, null, 2))));
+  const body    = { message: 'Update portfolio data', content, sha: ghSha || undefined };
+  if (!ghSha) delete body.sha;
+  const r = await fetch(GH_API, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${getToken()}`,
+      'Accept': 'application/vnd.github+json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error(`GitHub save failed: ${r.status} ${await r.text()}`);
+  const res = await r.json();
+  ghSha = res.content.sha; // update sha for next write
+}
+
+// ── SIMPLE API matching previous supa.* interface ────────
 const supa = {
   async select(table) {
-    const { data, error } = await db.from(table).select('*').order('created_at', { ascending: true });
-    if (error) throw new Error(`SELECT ${table} failed: ${error.message}`);
-    return data;
+    return store[table] || [];
   },
   async insert(table, row) {
-    const { data, error } = await db.from(table).insert(row).select();
-    if (error) throw new Error(`INSERT ${table} failed: ${error.message}`);
-    return data;
+    const newRow = { ...row, id: crypto.randomUUID(), created_at: new Date().toISOString() };
+    store[table] = [...(store[table] || []), newRow];
+    await ghSave();
+    return [newRow];
   },
   async update(table, id, updates) {
-    const { data, error } = await db.from(table).update(updates).eq('id', id).select();
-    if (error) throw new Error(`UPDATE ${table} failed: ${error.message}`);
-    return data;
+    const idx = store[table].findIndex(r => r.id === id);
+    if (idx === -1) throw new Error(`Row ${id} not found`);
+    store[table][idx] = { ...store[table][idx], ...updates };
+    await ghSave();
+    return [store[table][idx]];
   },
   async delete(table, id) {
-    const { error } = await db.from(table).delete().eq('id', id);
-    if (error) throw new Error(`DELETE ${table} failed: ${error.message}`);
+    store[table] = store[table].filter(r => r.id !== id);
+    await ghSave();
   }
 };
 
@@ -591,15 +656,11 @@ let isLoading     = true;
 let endowusValues = {}; // { 'CASH$$$TREE': {mv, cost}, ... } — overrides from Supabase
 
 // ── ENDOWUS VALUE HELPERS ────────────────────────────────
-async function loadEndowusValues() {
-  try {
-    const rows = await supa.select('endowus_values');
-    endowusValues = {};
-    rows.forEach(r => { endowusValues[r.fund_name] = { mv: r.mv, cost: r.cost, id: r.id }; });
-  } catch(e) {
-    // table may not exist yet — silently ignore
-    endowusValues = {};
-  }
+function loadEndowusValues() {
+  endowusValues = {};
+  (store.endowus_values || []).forEach(r => {
+    endowusValues[r.fund_name] = { mv: r.mv, cost: r.cost, id: r.id };
+  });
 }
 
 function getEndowusMV(name) {
@@ -1108,25 +1169,63 @@ document.querySelectorAll('.modal-bg').forEach(bg => {
 });
 
 // ── INIT — load from Supabase ─────────────────────────────
+// ── TOKEN SETUP ───────────────────────────────────────────
+function showTokenSetup() {
+  document.getElementById('modal-token').classList.add('open');
+}
+
+async function submitToken() {
+  const val = document.getElementById('token-input').value.trim();
+  if (!val.startsWith('ghp_') && !val.startsWith('github_pat_')) {
+    alert("That doesn't look like a valid GitHub token. It should start with ghp_");
+    return;
+  }
+  saveToken(val);
+  document.getElementById('modal-token').classList.remove('open');
+  setStatus('⟳ Token saved — loading data…');
+  try {
+    await ghLoad();
+    transactions = store.transactions;
+    dividends    = store.dividends;
+    loadEndowusValues();
+    const timeStr = new Date().toLocaleTimeString('en-SG', {hour:'2-digit', minute:'2-digit'});
+    setStatus(`✓ Data loaded · ${timeStr}`);
+    render();
+  } catch(e) {
+    setStatus('⚠ Could not load data — check your token has repo access', true);
+    console.error(e);
+  }
+}
+
 async function init() {
-  // Step 1: Render immediately with snapshot data so something always shows
+  // Step 1: Render immediately with snapshot data
   render();
   setStatus('⟳ Loading…');
 
-  // Step 2: Load Supabase data
-  try {
-    const [txData, divData] = await Promise.all([
-      supa.select('transactions'),
-      supa.select('dividends'),
-    ]);
-    transactions = txData;
-    dividends    = divData;
-    await loadEndowusValues();
-  } catch(e) {
-    setStatus('⚠ Supabase unavailable — showing snapshot data', true);
+  // Step 2: Load data from GitHub
+  if (!getToken()) {
+    showTokenSetup();
+    setStatus('⚠ GitHub token required — see setup panel', true);
+  } else {
+    try {
+      await ghLoad();
+      transactions = store.transactions;
+      dividends    = store.dividends;
+      loadEndowusValues();
+      const timeStr = new Date().toLocaleTimeString('en-SG', {hour:'2-digit', minute:'2-digit'});
+      setStatus(`✓ Data loaded · ${timeStr}`);
+    } catch(e) {
+      if (e.message === 'NO_TOKEN') {
+        showTokenSetup();
+        setStatus('⚠ GitHub token required — see setup panel', true);
+      } else {
+        setStatus('⚠ Could not load data from GitHub', true);
+        console.error('ghLoad error:', e);
+      }
+    }
   }
 
-  // Step 3: Fetch live prices (always attempt, non-blocking)
+  // Step 3: Fetch live prices
   try {
     await fetchLivePrices();
     FX = fxRate;
