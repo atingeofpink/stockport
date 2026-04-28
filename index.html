@@ -135,6 +135,10 @@
   @media(max-width:860px){.summary-grid{grid-template-columns:1fr 1fr};header{flex-direction:column;align-items:flex-start;gap:14px}}
   @media(max-width:580px){.page{padding:24px 16px 60px};.summary-grid{grid-template-columns:1fr}}
   .en-edit{background:none;border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:10px;padding:3px 8px;border-radius:5px;font-family:'DM Mono',monospace;letter-spacing:.05em;transition:all .15s}.en-edit:hover{color:var(--en);border-color:var(--en)}
+  .toggle-row{display:flex;gap:0;margin-bottom:16px;border:1px solid var(--border2);border-radius:8px;overflow:hidden}
+  .toggle-btn{flex:1;padding:9px;background:none;border:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.06em;cursor:pointer;transition:all .2s}
+  .toggle-btn.active-buy{background:rgba(90,245,160,.12);color:var(--green)}
+  .toggle-btn.active-sell{background:rgba(245,90,122,.12);color:var(--red)}
 </style>
 </head>
 <body>
@@ -265,7 +269,10 @@
         <span class="section-dot" style="background:var(--en);box-shadow:0 0 8px rgba(167,139,250,0.5)"></span>
         Endowus Cash
       </div>
-      <span class="section-meta" id="en-meta">—</span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="section-meta" id="en-meta">—</span>
+        <button class="action-btn" onclick="openModal('buy','en')">+ Add Transaction</button>
+      </div>
     </div>
     <div class="table-wrap">
       <div class="table-scroll">
@@ -290,9 +297,10 @@
       <div class="section-title">
         <span class="section-dot" style="background:var(--us)"></span>Transaction Log
       </div>
-      <div style="display:flex;gap:10px">
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button class="action-btn" onclick="openModal('buy','us')">+ US Transaction</button>
         <button class="action-btn" onclick="openModal('buy','sg')">+ SG Transaction</button>
+        <button class="action-btn" onclick="openModal('buy','en')" style="color:var(--en);border-color:rgba(167,139,250,.3)">+ Endowus</button>
       </div>
     </div>
     <div id="tx-list-wrap"><div class="empty-state">No transactions logged yet.</div></div>
@@ -340,34 +348,57 @@
 
 </div><!-- /page -->
 
-<!-- BUY MODAL -->
+<!-- TRANSACTION MODAL -->
 <div class="modal-bg" id="modal-buy">
   <div class="modal">
     <button class="modal-close" onclick="closeModal('buy')">✕</button>
     <h2 id="modal-buy-title">Add Transaction</h2>
-    <div class="modal-sub" id="modal-buy-sub">Log a new purchase</div>
-    <div class="form-group">
-      <label>Stock Symbol</label>
-      <select id="buy-symbol"></select>
+    <div class="modal-sub" id="modal-buy-sub">Log a purchase or sale</div>
+
+    <!-- Buy / Sell toggle -->
+    <div class="toggle-row">
+      <button class="toggle-btn active-buy" id="toggle-buy" onclick="setTxType('buy')">▲ BUY</button>
+      <button class="toggle-btn" id="toggle-sell" onclick="setTxType('sell')">▼ SELL</button>
     </div>
-    <div class="form-group" id="buy-new-symbol-wrap" style="display:none">
-      <label>New Symbol (e.g. AAPL, V68U)</label>
-      <input type="text" id="buy-new-symbol" placeholder="Enter ticker symbol" style="text-transform:uppercase">
-    </div>
-    <div class="form-row">
+
+    <!-- US / SG fields -->
+    <div id="buy-stock-fields">
       <div class="form-group">
-        <label>Number of Units</label>
-        <input type="number" id="buy-qty" placeholder="e.g. 500" min="1" step="1">
+        <label>Stock Symbol</label>
+        <select id="buy-symbol"></select>
+      </div>
+      <div class="form-group" id="buy-new-symbol-wrap" style="display:none">
+        <label>New Symbol (e.g. AAPL, V68U)</label>
+        <input type="text" id="buy-new-symbol" placeholder="Enter ticker symbol" style="text-transform:uppercase">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Number of Units</label>
+          <input type="number" id="buy-qty" placeholder="e.g. 500" min="1" step="1">
+        </div>
+        <div class="form-group">
+          <label id="buy-price-label">Price Per Unit</label>
+          <input type="number" id="buy-price" placeholder="e.g. 2.50" step="0.0001">
+        </div>
       </div>
       <div class="form-group">
-        <label>Cost Per Unit</label>
-        <input type="number" id="buy-price" placeholder="e.g. 2.50" step="0.0001">
+        <label>Brokerage / Other Costs</label>
+        <input type="number" id="buy-fee" placeholder="e.g. 10.00 (optional)" step="0.01" value="0">
       </div>
     </div>
-    <div class="form-group">
-      <label>Brokerage / Other Costs</label>
-      <input type="number" id="buy-fee" placeholder="e.g. 10.00 (optional)" step="0.01" value="0">
+
+    <!-- Endowus fields -->
+    <div id="buy-en-fields" style="display:none">
+      <div class="form-group">
+        <label>Fund</label>
+        <select id="buy-en-fund"></select>
+      </div>
+      <div class="form-group">
+        <label id="buy-en-amount-label">Amount Invested (SGD)</label>
+        <input type="number" id="buy-en-amount" placeholder="e.g. 5000.00" step="0.01">
+      </div>
     </div>
+
     <div class="form-group">
       <label>Date</label>
       <input type="date" id="buy-date">
@@ -375,7 +406,7 @@
     <div id="buy-preview" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-top:4px;display:none"></div>
     <div class="btn-row">
       <button class="btn btn-ghost" onclick="closeModal('buy')">Cancel</button>
-      <button class="btn btn-primary" onclick="submitBuy()">Add Transaction</button>
+      <button class="btn btn-primary" id="buy-submit-btn" onclick="submitBuy()">Add Transaction</button>
     </div>
   </div>
 </div>
@@ -393,11 +424,11 @@
     <div class="form-row">
       <div class="form-group">
         <label>Gross Amount (SGD)</label>
-        <input type="number" id="div-gross" placeholder="e.g. 607.50" step="0.01" oninput="updateDivPreview()">
+        <input type="number" id="div-gross" placeholder="e.g. 607.50" step="0.01">
       </div>
       <div class="form-group">
         <label>Tax Withheld / Fees (SGD)</label>
-        <input type="number" id="div-tax" placeholder="0.00" step="0.01" value="0" oninput="updateDivPreview()">
+        <input type="number" id="div-tax" placeholder="0.00" step="0.01" value="0">
       </div>
     </div>
     <div class="form-group">
@@ -490,9 +521,19 @@ async function ghLoad() {
   store.transactions   = store.transactions   || [];
   store.dividends      = store.dividends      || [];
   store.endowus_values = store.endowus_values || [];
+  // Restore last updated timestamps
+  if (store.lastUpdated) {
+    lastUpdated.sg = store.lastUpdated.sg ? new Date(store.lastUpdated.sg) : null;
+    lastUpdated.en = store.lastUpdated.en ? new Date(store.lastUpdated.en) : null;
+  }
 }
 
 async function ghSave() {
+  // Persist timestamps (US is always live so no need to save)
+  store.lastUpdated = {
+    sg: lastUpdated.sg ? lastUpdated.sg.toISOString() : null,
+    en: lastUpdated.en ? lastUpdated.en.toISOString() : null,
+  };
   const content = btoa(unescape(encodeURIComponent(JSON.stringify(store, null, 2))));
   const body    = { message: 'Update portfolio data', content, sha: ghSha || undefined };
   if (!ghSha) delete body.sha;
@@ -585,6 +626,7 @@ async function fetchLivePrices() {
     const timeStr = new Date().toLocaleTimeString('en-SG', {hour:'2-digit', minute:'2-digit'});
     setStatus(`✓ ${loaded} US prices updated ${timeStr} · FX ${fxRate.toFixed(4)} · SG prices are snapshot`);
     pricesLoadedAt = new Date();
+    lastUpdated.us = new Date();
     return true;
   } catch(e) {
     setStatus('⚠ Price fetch failed — using snapshot values', true);
@@ -651,6 +693,7 @@ let usStocks      = [];
 let sgStocks      = [];
 let isLoading     = true;
 let endowusValues = {}; // { 'CASH$$$TREE': {mv, cost}, ... } — overrides from GitHub
+let lastUpdated = { us: null, sg: null, en: null }; // timestamps per section
 
 // ── ENDOWUS VALUE HELPERS ────────────────────────────────
 function loadEndowusValues() {
@@ -697,24 +740,38 @@ function applyTransactions() {
   applyLivePrices(usStocks, 'us');
 
   transactions.forEach(tx => {
+    if (tx.market === 'en') return; // Endowus handled separately via endowusValues
+
+    const isSell   = tx.type === 'sell';
     const arr      = tx.market === 'us' ? usStocks : sgStocks;
     const existing = arr.find(h => h.symbol === tx.symbol);
     const txCost   = tx.qty * tx.price + (tx.fee || 0);
 
-    if (existing) {
-      // After live prices applied, recalc mv for full qty
-      const livePerUnit = existing.mv / (existing.qty || 1);
-      existing.cost += txCost;
-      existing.qty  += tx.qty;
-      existing.mv    = livePerUnit * existing.qty;
-      existing.pl    = existing.mv - existing.cost;
+    if (isSell) {
+      if (existing) {
+        const avgCost     = existing.cost / existing.qty;
+        const livePerUnit = existing.mv   / existing.qty;
+        existing.qty  -= tx.qty;
+        existing.cost -= avgCost * tx.qty;     // reduce cost basis proportionally
+        existing.mv    = livePerUnit * existing.qty;
+        existing.pl    = existing.mv - existing.cost;
+      }
+      // If position not found just skip — shouldn't happen in practice
     } else {
-      // New position — use live price if available, else buy price
-      const liveP = tx.market === 'us' ? (livePrices[tx.symbol] || tx.price) : tx.price;
-      const newMV = liveP * tx.qty;
-      const entry = { symbol:tx.symbol, name:tx.name||tx.symbol, qty:tx.qty, cost:txCost, mv:newMV, pl:newMV-txCost };
-      if (tx.market === 'sg') entry.dpu = tx.dpu || 0;
-      arr.push(entry);
+      // BUY
+      if (existing) {
+        const livePerUnit = existing.mv / (existing.qty || 1);
+        existing.cost += txCost;
+        existing.qty  += tx.qty;
+        existing.mv    = livePerUnit * existing.qty;
+        existing.pl    = existing.mv - existing.cost;
+      } else {
+        const liveP = tx.market === 'us' ? (livePrices[tx.symbol] || tx.price) : tx.price;
+        const newMV = liveP * tx.qty;
+        const entry = { symbol:tx.symbol, name:tx.name||tx.symbol, qty:tx.qty, cost:txCost, mv:newMV, pl:newMV-txCost };
+        if (tx.market === 'sg') entry.dpu = tx.dpu || 0;
+        arr.push(entry);
+      }
     }
   });
 }
@@ -766,8 +823,11 @@ function render() {
   // ── US TABLE
   const usSorted = [...usStocks].sort((a,b) => (b.mv*FX)-(a.mv*FX));
   const usMaxWt  = (usSorted[0].mv*FX/total)*100;
+  const usUpdatedStr = lastUpdated.us
+    ? 'Updated ' + lastUpdated.us.toLocaleTimeString('en-SG', {hour:'2-digit', minute:'2-digit', day:'numeric', month:'short'})
+    : 'Snapshot — 28 Feb 2026';
   document.getElementById('us-meta').textContent =
-    `${usSorted.length} positions · USD ${f(usMVusd,0)} · SGD ${f(usMVsgd,0)}`;
+    `${usSorted.length} positions · USD ${f(usMVusd,0)} · SGD ${f(usMVsgd,0)} · ${usUpdatedStr}`;
   document.getElementById('us-body').innerHTML = usSorted.map((h,i) => {
     const mvS=h.mv*FX, plS=h.pl*FX, wt=(mvS/total)*100, pct=pp(h.pl,h.cost), avg=h.cost/h.qty;
     return `<tr>
@@ -798,7 +858,10 @@ function render() {
   // ── SG TABLE
   const sgSorted = [...sgStocks].sort((a,b) => b.mv-a.mv);
   const sgMaxWt  = (sgSorted[0].mv/total)*100;
-  document.getElementById('sg-meta').textContent = `${sgSorted.length} positions · SGD ${f(sgMVsgd,0)}`;
+  const sgUpdatedStr = lastUpdated.sg
+    ? 'Updated ' + lastUpdated.sg.toLocaleString('en-SG', {hour:'2-digit', minute:'2-digit', day:'numeric', month:'short'})
+    : 'Snapshot — 28 Feb 2026';
+  document.getElementById('sg-meta').textContent = `${sgSorted.length} positions · SGD ${f(sgMVsgd,0)} · ${sgUpdatedStr}`;
   document.getElementById('sg-body').innerHTML = sgSorted.map((h,i) => {
     const wt=(h.mv/total)*100, pct=pp(h.pl,h.cost), avg=h.cost/h.qty;
     const pricePerUnit = h.mv/h.qty;
@@ -832,7 +895,10 @@ function render() {
   // ── ENDOWUS TABLE
   const enSorted = [...ENDOWUS].sort((a,b) => b.mv-a.mv);
   const enMaxWt  = (enSorted[0].mv/total)*100;
-  document.getElementById('en-meta').textContent = `${enSorted.length} funds · SGD ${f(enMVsgd,0)}`;
+  const enUpdatedStr = lastUpdated.en
+    ? 'Updated ' + lastUpdated.en.toLocaleString('en-SG', {hour:'2-digit', minute:'2-digit', day:'numeric', month:'short'})
+    : 'Not yet updated';
+  document.getElementById('en-meta').textContent = `${enSorted.length} funds · SGD ${f(enMVsgd,0)} · ${enUpdatedStr}`;
   document.getElementById('en-body').innerHTML = enSorted.map((h,i) => {
     const override = endowusValues[h.name];
     const mv   = override ? override.mv   : h.mv;
@@ -874,16 +940,24 @@ function renderTransactions() {
   const sorted = [...transactions].sort((a,b) => b.date.localeCompare(a.date));
   document.getElementById('tx-list-wrap').innerHTML = `<div class="tx-list">${sorted.map(tx => {
     const total = tx.qty*tx.price + (tx.fee||0);
-    const ccy   = tx.market==='us'?'USD':'SGD';
-    const col   = tx.market==='us'?'var(--us)':'var(--sg)';
+    const ccy   = tx.market==='us' ? 'USD' : 'SGD';
+    const col   = tx.market==='us' ? 'var(--us)' : tx.market==='en' ? 'var(--en)' : 'var(--sg)';
+    const isSell = tx.type === 'sell';
+    const isEN   = tx.market === 'en';
+    const typeLabel = isSell ? '▼ SELL' : '▲ BUY';
+    const typeColor = isSell ? 'var(--red)' : 'var(--green)';
+    const mainText  = isEN
+      ? `${isSell ? 'Withdraw' : 'Invest'} ${ccy} ${f(tx.price, 2)}`
+      : `${tx.qty.toLocaleString()} units @ ${ccy} ${f(tx.price, 4)}`;
     return `<div class="tx-item">
+      <div class="tx-badge" style="color:${typeColor};border-color:${typeColor}30">${typeLabel}</div>
       <div class="tx-badge" style="color:${col};border-color:${col}20">${tx.market.toUpperCase()}</div>
       <div class="tx-badge" style="color:${col}">${tx.symbol}</div>
       <div class="tx-details">
-        <div class="tx-main">${tx.qty.toLocaleString()} units @ ${ccy} ${f(tx.price,4)}</div>
+        <div class="tx-main">${mainText}</div>
         <div class="tx-sub">${tx.date}${tx.fee>0?' · Brokerage: '+ccy+' '+f(tx.fee,2):''}${tx.name&&tx.name!==tx.symbol?' · '+tx.name:''}</div>
       </div>
-      <div class="tx-amount" style="color:${col}">${ccy} ${f(total,2)}</div>
+      <div class="tx-amount" style="color:${isSell?'var(--red)':col}">${isSell?'−':''}${ccy} ${f(total,2)}</div>
       <button class="tx-delete" onclick="deleteTx('${tx.id}')" title="Remove">✕</button>
     </div>`;
   }).join('')}</div>`;
@@ -920,28 +994,44 @@ function openModal(type, market) {
   if (type === 'buy') {
     currentMarket = market;
     applyTransactions();
-    const arr = market==='us' ? usStocks : sgStocks;
-    const ccy = market==='us' ? 'USD' : 'SGD';
-    document.getElementById('modal-buy-title').textContent = market==='us' ? 'Add US Transaction' : 'Add SG Transaction';
-    document.getElementById('modal-buy-sub').textContent   = `Log a purchase · amounts in ${ccy}`;
-    const sel = document.getElementById('buy-symbol');
-    sel.innerHTML =
-      `<option value="__new__">— Enter new symbol —</option>` +
-      arr.map(h=>`<option value="${h.symbol}">${h.symbol} — ${h.name}</option>`).join('');
-    sel.onchange = handleSymbolChange;
-    document.getElementById('buy-new-symbol-wrap').style.display = 'none';
-    document.getElementById('buy-new-symbol').value = '';
+
+    // Reset toggle to BUY
+    setTxType('buy');
+
+    const isEN = market === 'en';
+    const titles = { us: 'US Transaction', sg: 'SG Transaction', en: 'Endowus Transaction' };
+    document.getElementById('modal-buy-title').textContent = titles[market] || 'Add Transaction';
+    document.getElementById('modal-buy-sub').textContent = isEN ? 'Log capital invested or withdrawn' : 'Log a purchase or sale';
+
+    // Show/hide appropriate fields
+    document.getElementById('buy-stock-fields').style.display = isEN ? 'none' : 'block';
+    document.getElementById('buy-en-fields').style.display    = isEN ? 'block' : 'none';
+
+    if (isEN) {
+      const enSel = document.getElementById('buy-en-fund');
+      enSel.innerHTML = ENDOWUS.map(f => `<option value="${f.name}">${f.name}</option>`).join('');
+      document.getElementById('buy-en-amount').value = '';
+    } else {
+      const arr = market === 'us' ? usStocks : sgStocks;
+      const sel = document.getElementById('buy-symbol');
+      sel.innerHTML =
+        `<option value="__new__">— Enter new symbol —</option>` +
+        arr.map(h => `<option value="${h.symbol}">${h.symbol} — ${h.name}</option>`).join('');
+      sel.onchange = handleSymbolChange;
+      document.getElementById('buy-new-symbol-wrap').style.display = 'none';
+      document.getElementById('buy-new-symbol').value = '';
+      document.getElementById('buy-qty').value   = '';
+      document.getElementById('buy-price').value = '';
+      document.getElementById('buy-fee').value   = '0';
+    }
+
     document.getElementById('buy-date').value  = today();
-    document.getElementById('buy-qty').value   = '';
-    document.getElementById('buy-price').value = '';
-    document.getElementById('buy-fee').value   = '0';
     document.getElementById('buy-preview').style.display = 'none';
     document.getElementById('modal-buy').classList.add('open');
   } else {
     applyTransactions();
     const sel = document.getElementById('div-symbol');
     sel.innerHTML = sgStocks.map(h=>`<option value="${h.symbol}">${h.symbol} — ${h.name}</option>`).join('');
-    sel.onchange  = autoFillDivQty;
     document.getElementById('div-date').value  = today();
     document.getElementById('div-gross').value = '';
     document.getElementById('div-tax').value   = '0';
@@ -953,6 +1043,20 @@ function openModal(type, market) {
 function handleSymbolChange() {
   const val = document.getElementById('buy-symbol').value;
   document.getElementById('buy-new-symbol-wrap').style.display = val==='__new__' ? 'block' : 'none';
+  updateBuyPreview();
+}
+
+let currentTxType = 'buy'; // 'buy' or 'sell'
+
+function setTxType(type) {
+  currentTxType = type;
+  const isSell = type === 'sell';
+  document.getElementById('toggle-buy').className  = 'toggle-btn' + (isSell ? '' : ' active-buy');
+  document.getElementById('toggle-sell').className = 'toggle-btn' + (isSell ? ' active-sell' : '');
+  // Update labels
+  document.getElementById('buy-price-label').textContent     = isSell ? 'Sale Price Per Unit' : 'Price Per Unit';
+  document.getElementById('buy-en-amount-label').textContent = isSell ? 'Amount Withdrawn (SGD)' : 'Amount Invested (SGD)';
+  document.getElementById('buy-submit-btn').textContent      = isSell ? 'Record Sale' : 'Add Transaction';
   updateBuyPreview();
 }
 
@@ -1004,49 +1108,72 @@ async function submitEnEdit() {
       const [saved] = await supa.insert('endowus_values', { fund_name: fund.name, mv, cost });
       endowusValues[fund.name] = { mv: saved.mv, cost: saved.cost, id: saved.id };
     }
+    lastUpdated.en = new Date();
     setStatus('✓ Endowus value updated');
     closeModal('en');
     render();
   } catch(e) {
-    setStatus('⚠ Save failed — run the SQL to create endowus_values table', true);
-    alert('Could not save — run the SQL to create the endowus_values table.\n\n' + e.message);
+    setStatus('⚠ Save failed — check your GitHub token is valid', true);
+    alert('Could not save Endowus value.\n\n' + e.message);
   } finally {
     btn.textContent = 'Update'; btn.disabled = false;
   }
 }
 
 function updateBuyPreview() {
+  const prev = document.getElementById('buy-preview');
+  const isSell = currentTxType === 'sell';
+
+  if (currentMarket === 'en') {
+    const amount = parseFloat(document.getElementById('buy-en-amount').value) || 0;
+    if (!amount) { prev.style.display='none'; return; }
+    prev.style.display = 'block';
+    const col = isSell ? 'var(--red)' : 'var(--accent)';
+    prev.innerHTML = `${isSell ? 'Withdrawing' : 'Investing'}: <span style="color:${col}">SGD ${f(amount,2)}</span>`;
+    return;
+  }
+
   const qty   = parseFloat(document.getElementById('buy-qty').value)   || 0;
   const price = parseFloat(document.getElementById('buy-price').value) || 0;
   const fee   = parseFloat(document.getElementById('buy-fee').value)   || 0;
-  const prev  = document.getElementById('buy-preview');
   if (!qty || !price) { prev.style.display='none'; return; }
   const total = qty*price + fee;
   const ccy   = currentMarket==='us' ? 'USD' : 'SGD';
+  const col   = isSell ? 'var(--red)' : 'var(--accent)';
   prev.style.display = 'block';
-  prev.innerHTML = `Total cost: <span style="color:var(--accent)">${ccy} ${f(total,2)}</span>
+  prev.innerHTML = `${isSell?'Proceeds':'Total cost'}: <span style="color:${col}">${ccy} ${f(total,2)}</span>
     &nbsp;·&nbsp; ${qty.toLocaleString()} units @ ${ccy} ${f(price,4)}
     ${fee>0?' + '+ccy+' '+f(fee,2)+' brokerage':''}`;
 }
 
 async function submitBuy() {
-  let sym = document.getElementById('buy-symbol').value;
-  if (sym === '__new__') {
-    sym = document.getElementById('buy-new-symbol').value.trim().toUpperCase();
-    if (!sym) { alert('Please enter a symbol.'); return; }
+  const date = document.getElementById('buy-date').value;
+  const btn  = document.getElementById('buy-submit-btn');
+  let row;
+
+  if (currentMarket === 'en') {
+    // ── Endowus transaction
+    const fund   = document.getElementById('buy-en-fund').value;
+    const amount = parseFloat(document.getElementById('buy-en-amount').value);
+    if (!fund || !amount || amount <= 0) { alert('Please fill in Fund and Amount.'); return; }
+    row = { symbol: fund, name: fund, market: 'en', type: currentTxType, qty: 1, price: amount, fee: 0, date, dpu: 0 };
+  } else {
+    // ── US / SG transaction
+    let sym = document.getElementById('buy-symbol').value;
+    if (sym === '__new__') {
+      sym = document.getElementById('buy-new-symbol').value.trim().toUpperCase();
+      if (!sym) { alert('Please enter a symbol.'); return; }
+    }
+    const qty   = parseInt(document.getElementById('buy-qty').value);
+    const price = parseFloat(document.getElementById('buy-price').value);
+    const fee   = parseFloat(document.getElementById('buy-fee').value) || 0;
+    if (!qty || !price || qty <= 0 || price <= 0) { alert('Please fill in Units and Price Per Unit.'); return; }
+
+    const arr   = currentMarket === 'us' ? usStocks : sgStocks;
+    const stock = arr.find(h => h.symbol === sym);
+    row = { symbol: sym, name: stock ? stock.name : sym, market: currentMarket, type: currentTxType, qty, price, fee, date, dpu: stock?.dpu || 0 };
   }
-  const qty   = parseInt(document.getElementById('buy-qty').value);
-  const price = parseFloat(document.getElementById('buy-price').value);
-  const fee   = parseFloat(document.getElementById('buy-fee').value) || 0;
-  const date  = document.getElementById('buy-date').value;
-  if (!qty || !price || qty<=0 || price<=0) { alert('Please fill in Units and Cost Per Unit.'); return; }
 
-  const arr   = currentMarket==='us' ? usStocks : sgStocks;
-  const stock = arr.find(h => h.symbol===sym);
-
-  const row = { symbol:sym, name:stock?stock.name:sym, market:currentMarket, qty, price, fee, date, dpu:stock?.dpu||0 };
-
-  const btn = document.querySelector('#modal-buy .btn-primary');
   btn.textContent = 'Saving…'; btn.disabled = true;
 
   try {
@@ -1054,14 +1181,16 @@ async function submitBuy() {
     transactions.push(saved);
     closeModal('buy');
     render();
-    setStatus('✓ Saved · synced to cloud');
+    if (currentMarket === 'sg') lastUpdated.sg = new Date();
+    setStatus('✓ Saved · data synced to GitHub');
     switchTab('transactions', document.querySelectorAll('.tab')[1]);
     setTimeout(() => switchTab('portfolio', document.querySelectorAll('.tab')[0]), 1800);
   } catch(e) {
     setStatus('⚠ Save failed: ' + e.message, true);
     alert('Could not save — check your GitHub token is valid.\n\n' + e.message);
   } finally {
-    btn.textContent = 'Add Transaction'; btn.disabled = false;
+    btn.textContent = currentTxType === 'sell' ? 'Record Sale' : 'Add Transaction';
+    btn.disabled = false;
   }
 }
 
@@ -1095,7 +1224,7 @@ async function submitDiv() {
     dividends.push(saved);
     closeModal('div');
     render();
-    setStatus('✓ Dividend saved · synced to cloud');
+    setStatus('✓ Dividend saved · data synced to GitHub');
     switchTab('dividends', document.querySelectorAll('.tab')[2]);
   } catch(e) {
     setStatus('⚠ Save failed: ' + e.message, true);
@@ -1137,9 +1266,11 @@ function switchTab(name, btn) {
 // ── INPUT LISTENERS ───────────────────────────────────────
 document.getElementById('en-mv').addEventListener('input',   updateEnPreview);
 document.getElementById('en-cost').addEventListener('input', updateEnPreview);
+document.getElementById('buy-en-amount').addEventListener('input', updateBuyPreview);
 document.getElementById('buy-qty').addEventListener('input',   updateBuyPreview);
 document.getElementById('buy-price').addEventListener('input', updateBuyPreview);
 document.getElementById('buy-fee').addEventListener('input',   updateBuyPreview);
+document.getElementById('div-gross').addEventListener('input', updateDivPreview);
 document.getElementById('div-tax').addEventListener('input',   updateDivPreview);
 
 document.querySelectorAll('.modal-bg').forEach(bg => {
