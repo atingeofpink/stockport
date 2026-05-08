@@ -135,6 +135,19 @@
       "dpu": 0.12,
       "id": "3c55c40f-1bb0-45a5-978e-0971a17039e7",
       "created_at": "2026-05-08T08:03:47.898Z"
+    },
+    {
+      "symbol": "C38U",
+      "name": "CapitaLand Integrated CT",
+      "market": "sg",
+      "type": "buy",
+      "qty": 500,
+      "price": 2.31,
+      "fee": 2.76,
+      "date": "2026-05-08",
+      "dpu": 0.12,
+      "id": "570e53c0-bb1c-46b4-8604-10ed7bc24571",
+      "created_at": "2026-05-08T08:04:37.371Z"
     }
   ],
   "dividends": [
@@ -169,7 +182,7 @@
   ],
   "endowus_values": [],
   "lastUpdated": {
-    "sg": "2026-05-08T08:02:49.489Z",
+    "sg": "2026-05-08T08:03:49.874Z",
     "en": null
   }
 }
