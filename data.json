@@ -25,18 +25,6 @@
       "created_at": "2026-04-26T11:00:00.539Z"
     },
     {
-      "symbol": "C38U",
-      "name": "CapitaLand Integrated CT",
-      "market": "sg",
-      "qty": 600,
-      "price": 2.3,
-      "fee": 2.76,
-      "date": "2026-03-09",
-      "dpu": 0.12,
-      "id": "1a046612-2bd1-46f2-997e-39fb180ecd3d",
-      "created_at": "2026-04-26T11:05:34.283Z"
-    },
-    {
       "symbol": "J69U",
       "name": "Frasers Cpt Tr",
       "market": "sg",
