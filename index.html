@@ -883,11 +883,13 @@ function render() {
   }).join('');
   const usTotPct=pp(usPLusd,usCost), usPLs=usPLusd*FX;
   document.getElementById('us-total').innerHTML = `
-    <td></td><td style="font-size:10px;letter-spacing:.1em;color:var(--muted);font-family:'DM Mono',monospace">TOTAL</td>
-    <td></td><td></td>
-    <td></td><td class="num">USD ${f(usMVusd,0)}</td>
+    <td></td>
+    <td style="font-size:10px;letter-spacing:.1em;color:var(--muted);font-family:'DM Mono',monospace">TOTAL</td>
+    <td></td>
+    <td class="num" style="color:var(--muted);font-size:11px">USD ${f(usCost,0)}<br><span style="color:rgba(255,255,255,.3)">SGD ${f(usCost*FX,0)}</span></td>
+    <td></td>
+    <td class="num">USD ${f(usMVusd,0)}</td>
     <td class="num" style="color:var(--us)">SGD ${f(usMVsgd,0)}</td>
-    <td class="num" style="color:var(--muted);font-size:11px">Cost: SGD ${f(usCost*FX,0)}</td>
     <td class="col-divider">${plPill(usPLusd, f(usPLusd,0))}</td>
     <td>${plPill(usPLs, 'SGD '+f(usPLs,0))}</td>
     <td>${pctBadge(usTotPct)}</td>
@@ -925,10 +927,12 @@ function render() {
   }).join('');
   const sgTotPct=pp(sgPLsgd,sgCost);
   document.getElementById('sg-total').innerHTML = `
-    <td></td><td style="font-size:10px;letter-spacing:.1em;color:var(--muted);font-family:'DM Mono',monospace">TOTAL</td>
-    <td></td><td></td>
-    <td></td><td class="num" style="color:var(--sg)">SGD ${f(sgMVsgd,0)}</td>
-    <td class="num" style="color:var(--muted);font-size:11px">Cost: SGD ${f(sgCost,0)}</td>
+    <td></td>
+    <td style="font-size:10px;letter-spacing:.1em;color:var(--muted);font-family:'DM Mono',monospace">TOTAL</td>
+    <td></td>
+    <td class="num" style="color:var(--muted);font-size:11px">SGD ${f(sgCost,0)}</td>
+    <td></td>
+    <td class="num" style="color:var(--sg)">SGD ${f(sgMVsgd,0)}</td>
     <td class="col-divider">${plPill(sgPLsgd, 'SGD '+f(sgPLsgd,0))}</td>
     <td>${pctBadge(sgTotPct)}</td>
     <td class="col-divider num" style="color:var(--accent)">SGD ${f(sgDivEst,0)}</td>
@@ -954,18 +958,21 @@ function render() {
       <td class="rank">${i+1}</td>
       <td><div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:500;color:var(--en)">${h.name}</div><div class="sym-name">${h.type}</div></td>
       <td style="text-align:left;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace">${h.type.split(' · ')[0]}</td>
-      <td class="num">SGD ${f(mv)}</td>
+      <td class="num" style="white-space:nowrap">
+        SGD ${f(mv)}
+        <button class="en-edit" style="margin-left:4px;vertical-align:middle" onclick="openEnEdit(${idx})">✎</button>
+      </td>
       <td class="col-divider">${plPill(pl, 'SGD '+f(pl))}</td>
       <td>${pctBadge(pct)}</td>
       <td class="col-divider">${wtBar(wt, enMaxWt, 'var(--en)')}</td>
-      <td><button class="en-edit" onclick="openEnEdit(${idx})">✎ Edit</button></td>
     </tr>`;
   }).join('');
   const enTotPct=pp(enPLsgd,enCost);
   document.getElementById('en-total').innerHTML = `
-    <td></td><td style="font-size:10px;letter-spacing:.1em;color:var(--muted);font-family:'DM Mono',monospace">TOTAL</td><td></td>
-    <td class="num" style="color:var(--en)">SGD ${f(enMVsgd,0)}</td>
-    <td class="num" style="color:var(--muted);font-size:11px">Cost: SGD ${f(enCost,0)}</td>
+    <td></td>
+    <td style="font-size:10px;letter-spacing:.1em;color:var(--muted);font-family:'DM Mono',monospace">TOTAL</td>
+    <td></td>
+    <td class="num" style="color:var(--en);line-height:1.6">SGD ${f(enMVsgd,0)}<br><span style="font-size:10px;color:var(--muted)">Cost: SGD ${f(enCost,0)}</span></td>
     <td class="col-divider">${plPill(enPLsgd, 'SGD '+f(enPLsgd,0))}</td>
     <td>${pctBadge(enTotPct)}</td>
     <td class="col-divider"><div class="wt-row"><span class="wt-label" style="color:var(--en)">${((enMVsgd/total)*100).toFixed(1)}%</span></div></td>`;
