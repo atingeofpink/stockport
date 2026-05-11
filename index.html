@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -255,6 +254,7 @@
             <th class="col-divider">Unreal. P&amp;L (SGD)</th><th>P&amp;L %</th>
             <th class="col-divider">Est. Annual Div.</th><th>Div Yield</th>
             <th class="col-divider">Portfolio Wt.</th>
+            <th></th>
           </tr></thead>
           <tbody id="sg-body"></tbody>
           <tfoot><tr id="sg-total"></tr></tfoot>
@@ -924,7 +924,8 @@ function render() {
     <td>${pctBadge(sgTotPct)}</td>
     <td class="col-divider num" style="color:var(--accent)">SGD ${f(sgDivEst,0)}</td>
     <td></td>
-    <td class="col-divider"><div class="wt-row"><span class="wt-label" style="color:var(--sg)">${((sgMVsgd/total)*100).toFixed(1)}%</span></div></td>`;
+    <td class="col-divider"><div class="wt-row"><span class="wt-label" style="color:var(--sg)">${((sgMVsgd/total)*100).toFixed(1)}%</span></div></td>
+    <td></td>`;
 
   // ── ENDOWUS TABLE
   const enSorted = [...ENDOWUS].sort((a,b) => b.mv-a.mv);
