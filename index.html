@@ -254,7 +254,6 @@
             <th class="col-divider">Unreal. P&amp;L (SGD)</th><th>P&amp;L %</th>
             <th class="col-divider">Est. Annual Div.</th><th>Div Yield</th>
             <th class="col-divider">Portfolio Wt.</th>
-            <th></th>
           </tr></thead>
           <tbody id="sg-body"></tbody>
           <tfoot><tr id="sg-total"></tr></tfoot>
@@ -905,14 +904,16 @@ function render() {
       <td><div class="sym-badge" style="color:var(--sg)">${h.symbol}</div><div class="sym-name">${h.name}</div></td>
       <td class="num">${h.qty.toLocaleString()}</td>
       <td class="num">${f(avg,3)}</td>
-      <td class="num" style="color:var(--text)">${f(h.mv/h.qty,3)}</td>
+      <td class="num" style="color:var(--text);white-space:nowrap">
+        ${f(h.mv/h.qty,3)}
+        <button class="en-edit" style="color:var(--sg);border-color:rgba(255,179,71,.3);margin-left:4px;vertical-align:middle" onclick="openSGPriceEdit('${h.symbol}','${h.name}')">✎</button>
+      </td>
       <td class="num">${f(h.mv,0)}</td>
       <td class="col-divider">${plPill(h.pl, 'SGD '+f(h.pl,0))}</td>
       <td>${pctBadge(pct)}</td>
       <td class="col-divider"><span class="num" style="color:var(--accent)">SGD ${f(estDiv,0)}</span></td>
       <td><span class="num" style="color:var(--muted)">${divYield}</span></td>
       <td class="col-divider">${wtBar(wt, sgMaxWt, 'var(--sg)')}</td>
-      <td><button class="en-edit" style="color:var(--sg);border-color:rgba(255,179,71,.3)" onclick="openSGPriceEdit('${h.symbol}','${h.name}')">✎ Price</button></td>
     </tr>`;
   }).join('');
   const sgTotPct=pp(sgPLsgd,sgCost);
@@ -924,8 +925,7 @@ function render() {
     <td>${pctBadge(sgTotPct)}</td>
     <td class="col-divider num" style="color:var(--accent)">SGD ${f(sgDivEst,0)}</td>
     <td></td>
-    <td class="col-divider"><div class="wt-row"><span class="wt-label" style="color:var(--sg)">${((sgMVsgd/total)*100).toFixed(1)}%</span></div></td>
-    <td></td>`;
+    <td class="col-divider"><div class="wt-row"><span class="wt-label" style="color:var(--sg)">${((sgMVsgd/total)*100).toFixed(1)}%</span></div></td>`;
 
   // ── ENDOWUS TABLE
   const enSorted = [...ENDOWUS].sort((a,b) => b.mv-a.mv);
