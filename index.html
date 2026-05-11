@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -443,6 +444,25 @@
   </div>
 </div>
 
+<!-- SG PRICE EDIT MODAL -->
+<div class="modal-bg" id="modal-sg-price">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('sg-price')">✕</button>
+    <h2 id="modal-sg-price-title">Update SG Price</h2>
+    <div class="modal-sub">Enter the current market price for this stock</div>
+    <input type="hidden" id="sg-price-symbol">
+    <div class="form-group" style="margin-top:8px">
+      <label id="sg-price-label">Current Price (SGD)</label>
+      <input type="number" id="sg-price-val" placeholder="e.g. 38.20" step="0.001">
+    </div>
+    <div id="sg-price-preview" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-top:4px;display:none"></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="closeModal('sg-price')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitSGPrice()">Update Price</button>
+    </div>
+  </div>
+</div>
+
 <!-- ENDOWUS EDIT MODAL -->
 <div class="modal-bg" id="modal-en">
   <div class="modal">
@@ -526,6 +546,7 @@ async function ghLoad() {
     lastUpdated.sg = store.lastUpdated.sg ? new Date(store.lastUpdated.sg) : null;
     lastUpdated.en = store.lastUpdated.en ? new Date(store.lastUpdated.en) : null;
   }
+  if (store.sgPrices) sgPrices = store.sgPrices;
 }
 
 async function ghSave() {
@@ -534,6 +555,7 @@ async function ghSave() {
     sg: lastUpdated.sg ? lastUpdated.sg.toISOString() : null,
     en: lastUpdated.en ? lastUpdated.en.toISOString() : null,
   };
+  store.sgPrices = sgPrices;
   const content = btoa(unescape(encodeURIComponent(JSON.stringify(store, null, 2))));
   const body    = { message: 'Update portfolio data', content, sha: ghSha || undefined };
   if (!ghSha) delete body.sha;
@@ -583,7 +605,8 @@ const TD_BASE = 'https://api.twelvedata.com';
 const TD_SYMBOLS_US = ['MSFT','META','NET','NFLX','TSLA','CRWD','AXON','GLD','MA','NVDA','AMD','MU','IBIT','COPX','OKLO','PATH','NBIS'];
 
 // Cache prices so we don't re-fetch on every render
-let livePrices = {}; // { 'MSFT': 392.50, 'D05.SI': 38.20, ... }
+let livePrices = {}; // { 'MSFT': 392.50, ... } — US live prices from Twelve Data
+let sgPrices   = {}; // { 'D05': 38.20, ... } — manually entered SG prices
 let fxRate     = 1.265; // updated from Twelve Data if available
 let pricesLoadedAt = null;
 
@@ -624,7 +647,11 @@ async function fetchLivePrices() {
 
     const loaded  = Object.keys(livePrices).length;
     const timeStr = new Date().toLocaleTimeString('en-SG', {hour:'2-digit', minute:'2-digit'});
-    setStatus(`✓ ${loaded} US prices updated ${timeStr} · FX ${fxRate.toFixed(4)} · SG prices are snapshot`);
+    if (loaded === 0) {
+      setStatus('⚠ Prices fetched but no data returned — check Twelve Data API key', true);
+      return false;
+    }
+    setStatus(`✓ ${loaded} US prices updated ${timeStr} · FX ${fxRate.toFixed(4)} · SG snapshot`);
     pricesLoadedAt = new Date();
     lastUpdated.us = new Date();
     return true;
@@ -637,8 +664,12 @@ async function fetchLivePrices() {
 
 function applyLivePrices(arr, market) {
   arr.forEach(h => {
-    const tdSym = market === 'sg' ? h.symbol + '.SI' : h.symbol;
-    const livePrice = livePrices[tdSym];
+    let livePrice = null;
+    if (market === 'sg') {
+      livePrice = sgPrices[h.symbol] || null;
+    } else {
+      livePrice = livePrices[h.symbol] || null;
+    }
     if (livePrice && livePrice > 0) {
       h.mv = livePrice * h.qty;
       h.pl = h.mv - h.cost;
@@ -736,8 +767,9 @@ function applyTransactions() {
   usStocks = BASE_US.map(h => ({...h}));
   sgStocks = BASE_SG.map(h => ({...h}));
 
-  // Apply live prices to US holdings; SG uses snapshot values
+  // Apply live prices — US from Twelve Data, SG from manual entries
   applyLivePrices(usStocks, 'us');
+  applyLivePrices(sgStocks, 'sg');
 
   transactions.forEach(tx => {
     if (tx.market === 'en') return; // Endowus handled separately via endowusValues
@@ -858,10 +890,11 @@ function render() {
   // ── SG TABLE
   const sgSorted = [...sgStocks].sort((a,b) => b.mv-a.mv);
   const sgMaxWt  = (sgSorted[0].mv/total)*100;
+  const sgPriceCount = Object.keys(sgPrices).length;
   const sgUpdatedStr = lastUpdated.sg
     ? 'Updated ' + lastUpdated.sg.toLocaleString('en-SG', {hour:'2-digit', minute:'2-digit', day:'numeric', month:'short'})
     : 'Snapshot — 28 Feb 2026';
-  document.getElementById('sg-meta').textContent = `${sgSorted.length} positions · SGD ${f(sgMVsgd,0)} · ${sgUpdatedStr}`;
+  document.getElementById('sg-meta').textContent = `${sgSorted.length} positions · SGD ${f(sgMVsgd,0)} · ${sgPriceCount} manual prices · ${sgUpdatedStr}`;
   document.getElementById('sg-body').innerHTML = sgSorted.map((h,i) => {
     const wt=(h.mv/total)*100, pct=pp(h.pl,h.cost), avg=h.cost/h.qty;
     const pricePerUnit = h.mv/h.qty;
@@ -879,6 +912,7 @@ function render() {
       <td class="col-divider"><span class="num" style="color:var(--accent)">SGD ${f(estDiv,0)}</span></td>
       <td><span class="num" style="color:var(--muted)">${divYield}</span></td>
       <td class="col-divider">${wtBar(wt, sgMaxWt, 'var(--sg)')}</td>
+      <td><button class="en-edit" style="color:var(--sg);border-color:rgba(255,179,71,.3)" onclick="openSGPriceEdit('${h.symbol}','${h.name}')">✎ Price</button></td>
     </tr>`;
   }).join('');
   const sgTotPct=pp(sgPLsgd,sgCost);
@@ -1061,6 +1095,52 @@ function setTxType(type) {
 }
 
 function closeModal(type) { document.getElementById('modal-'+type).classList.remove('open'); }
+
+// ── SG PRICE EDIT ─────────────────────────────────────────
+function openSGPriceEdit(symbol, name) {
+  document.getElementById('modal-sg-price-title').textContent = `Update ${symbol} Price`;
+  document.getElementById('sg-price-label').textContent = `Current Price (SGD) — ${name}`;
+  document.getElementById('sg-price-symbol').value = symbol;
+  document.getElementById('sg-price-val').value = sgPrices[symbol] || '';
+  updateSGPricePreview();
+  document.getElementById('modal-sg-price').classList.add('open');
+}
+
+function updateSGPricePreview() {
+  const sym   = document.getElementById('sg-price-symbol').value;
+  const price = parseFloat(document.getElementById('sg-price-val').value) || 0;
+  const prev  = document.getElementById('sg-price-preview');
+  if (!price) { prev.style.display='none'; return; }
+  const stock = sgStocks.find(h => h.symbol === sym);
+  if (!stock) { prev.style.display='none'; return; }
+  const mv    = price * stock.qty;
+  const pl    = mv - stock.cost;
+  const pct   = stock.cost ? ((pl/stock.cost)*100).toFixed(1) : 0;
+  prev.style.display = 'block';
+  prev.innerHTML = `${stock.qty.toLocaleString()} units × SGD ${f(price,3)} = <span style="color:var(--sg)">SGD ${f(mv,0)}</span>
+    &nbsp;·&nbsp; P&L: <span style="color:${pl>=0?'var(--green)':'var(--red)'}">${pl>=0?'+':'−'}SGD ${f(Math.abs(pl),0)} (${pl>=0?'+':''}${pct}%)</span>`;
+}
+
+async function submitSGPrice() {
+  const sym   = document.getElementById('sg-price-symbol').value;
+  const price = parseFloat(document.getElementById('sg-price-val').value);
+  if (!price || price <= 0) { alert('Please enter a valid price.'); return; }
+  const btn = document.querySelector('#modal-sg-price .btn-primary');
+  btn.textContent = 'Saving…'; btn.disabled = true;
+  try {
+    sgPrices[sym] = price;
+    lastUpdated.sg = new Date();
+    await ghSave();
+    closeModal('sg-price');
+    render();
+    setStatus(`✓ ${sym} price updated to SGD ${f(price,3)}`);
+  } catch(e) {
+    setStatus('⚠ Save failed: ' + e.message, true);
+    alert('Could not save price.\n\n' + e.message);
+  } finally {
+    btn.textContent = 'Update Price'; btn.disabled = false;
+  }
+}
 
 // ── ENDOWUS EDIT ──────────────────────────────────────────
 function openEnEdit(idx) {
@@ -1264,6 +1344,7 @@ function switchTab(name, btn) {
 }
 
 // ── INPUT LISTENERS ───────────────────────────────────────
+document.getElementById('sg-price-val').addEventListener('input', updateSGPricePreview);
 document.getElementById('en-mv').addEventListener('input',   updateEnPreview);
 document.getElementById('en-cost').addEventListener('input', updateEnPreview);
 document.getElementById('buy-en-amount').addEventListener('input', updateBuyPreview);
