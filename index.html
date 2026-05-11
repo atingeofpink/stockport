@@ -170,16 +170,19 @@
     <div class="card-label">US Stocks &amp; ETFs</div>
     <div class="card-val" style="color:var(--us)" id="s-us-val">—</div>
     <div class="card-sub" id="s-us-pct">—</div>
+    <div class="card-sub" id="s-us-cost" style="margin-top:2px">—</div>
   </div>
   <div class="card">
     <div class="card-label">SG Stocks / REITs</div>
     <div class="card-val" style="color:var(--sg)" id="s-sg-val">—</div>
     <div class="card-sub" id="s-sg-pct">—</div>
+    <div class="card-sub" id="s-sg-cost" style="margin-top:2px">—</div>
   </div>
   <div class="card">
     <div class="card-label">Endowus Cash</div>
     <div class="card-val" style="color:var(--en)" id="s-en-val">—</div>
     <div class="card-sub" id="s-en-pct">—</div>
+    <div class="card-sub" id="s-en-cost" style="margin-top:2px">—</div>
   </div>
   <div class="card">
     <div class="card-label">Dividends Received</div>
@@ -830,10 +833,13 @@ function render() {
 
   document.getElementById('s-us-val').textContent = 'SGD ' + f(usMVsgd, 0);
   document.getElementById('s-us-pct').textContent = ((usMVsgd/total)*100).toFixed(1) + '% of portfolio';
+  document.getElementById('s-us-cost').textContent = 'Invested: SGD ' + f(usCost*FX, 0);
   document.getElementById('s-sg-val').textContent = 'SGD ' + f(sgMVsgd, 0);
   document.getElementById('s-sg-pct').textContent = ((sgMVsgd/total)*100).toFixed(1) + '% of portfolio';
+  document.getElementById('s-sg-cost').textContent = 'Invested: SGD ' + f(sgCost, 0);
   document.getElementById('s-en-val').textContent = 'SGD ' + f(enMVsgd, 0);
   document.getElementById('s-en-pct').textContent = ((enMVsgd/total)*100).toFixed(1) + '% of portfolio';
+  document.getElementById('s-en-cost').textContent = 'Invested: SGD ' + f(enCost, 0);
   document.getElementById('s-div-recv').textContent = 'SGD ' + f(divRecv, 2);
   document.getElementById('s-div-recv-sub').textContent = dividends.length + ' payment' + (dividends.length!==1?'s':'') + ' logged';
 
@@ -881,6 +887,7 @@ function render() {
     <td></td><td></td>
     <td></td><td class="num">USD ${f(usMVusd,0)}</td>
     <td class="num" style="color:var(--us)">SGD ${f(usMVsgd,0)}</td>
+    <td class="num" style="color:var(--muted);font-size:11px">Cost: SGD ${f(usCost*FX,0)}</td>
     <td class="col-divider">${plPill(usPLusd, f(usPLusd,0))}</td>
     <td>${plPill(usPLs, 'SGD '+f(usPLs,0))}</td>
     <td>${pctBadge(usTotPct)}</td>
@@ -921,6 +928,7 @@ function render() {
     <td></td><td style="font-size:10px;letter-spacing:.1em;color:var(--muted);font-family:'DM Mono',monospace">TOTAL</td>
     <td></td><td></td>
     <td></td><td class="num" style="color:var(--sg)">SGD ${f(sgMVsgd,0)}</td>
+    <td class="num" style="color:var(--muted);font-size:11px">Cost: SGD ${f(sgCost,0)}</td>
     <td class="col-divider">${plPill(sgPLsgd, 'SGD '+f(sgPLsgd,0))}</td>
     <td>${pctBadge(sgTotPct)}</td>
     <td class="col-divider num" style="color:var(--accent)">SGD ${f(sgDivEst,0)}</td>
@@ -957,6 +965,7 @@ function render() {
   document.getElementById('en-total').innerHTML = `
     <td></td><td style="font-size:10px;letter-spacing:.1em;color:var(--muted);font-family:'DM Mono',monospace">TOTAL</td><td></td>
     <td class="num" style="color:var(--en)">SGD ${f(enMVsgd,0)}</td>
+    <td class="num" style="color:var(--muted);font-size:11px">Cost: SGD ${f(enCost,0)}</td>
     <td class="col-divider">${plPill(enPLsgd, 'SGD '+f(enPLsgd,0))}</td>
     <td>${pctBadge(enTotPct)}</td>
     <td class="col-divider"><div class="wt-row"><span class="wt-label" style="color:var(--en)">${((enMVsgd/total)*100).toFixed(1)}%</span></div></td>`;
