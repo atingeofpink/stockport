@@ -257,6 +257,15 @@
       "date": "2026-05-02",
       "id": "df91df65-8ef6-4e9d-b34f-26fd54d4f848",
       "created_at": "2026-05-25T23:21:15.145Z"
+    },
+    {
+      "symbol": "J69U",
+      "gross": 282.25,
+      "tax": 0,
+      "net": 282.25,
+      "date": "2026-06-01",
+      "id": "9b99bc0b-3547-4d60-b25c-e73b4bb3cfd4",
+      "created_at": "2026-06-02T02:49:19.864Z"
     }
   ],
   "endowus_values": [],
