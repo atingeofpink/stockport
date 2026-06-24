@@ -275,6 +275,15 @@
       "date": "2026-06-10",
       "id": "2d96e04d-a3b1-4c5b-9d83-17f569faa621",
       "created_at": "2026-06-10T02:05:28.785Z"
+    },
+    {
+      "symbol": "BUOU",
+      "gross": 504.45,
+      "tax": 0,
+      "net": 504.45,
+      "date": "2026-06-24",
+      "id": "b4ce2227-cf0c-4915-bb91-231bc8e99afa",
+      "created_at": "2026-06-24T02:03:49.931Z"
     }
   ],
   "endowus_values": [],
